@@ -1,5 +1,8 @@
 import { motion } from "framer-motion";
 import type { EntryCardData } from "./EntryCardCanvas";
+import stampBadge from "@/assets/stamp-badge.png";
+import immigrationButton from "@/assets/immigration-button.png";
+import bearOfficer from "@/assets/bear-officer.png";
 
 interface AssetPlaceholdersProps {
   formData: EntryCardData;
@@ -13,63 +16,65 @@ const AssetPlaceholders = ({ formData }: AssetPlaceholdersProps) => {
 
   return (
     <>
-      {/* Bear Officer Illustration Placeholder */}
-      <div
-        className="absolute flex items-center justify-center border-2 border-dashed border-border rounded-lg"
+      {/* Top Right Stamp Badge */}
+      <img
+        src={stampBadge}
+        alt="GGUMDDI NATION Stamp"
+        className="absolute pointer-events-none"
+        style={{
+          right: "32px",
+          top: "32px",
+          width: "220px",
+          height: "auto",
+        }}
+      />
+
+      {/* Bear Officer Illustration */}
+      <img
+        src={bearOfficer}
+        alt="Bear Immigration Officer"
+        className="absolute pointer-events-none"
         style={{
           right: "48px",
           bottom: "48px",
           width: "280px",
-          height: "320px",
+          height: "auto",
         }}
-      >
-        <span className="text-muted-foreground text-center text-sm px-4">
-          곰 입국심사관<br />
-          일러스트<br />
-          (Bear Officer)<br />
-          280 × 320
-        </span>
-      </div>
+      />
 
-      {/* Immigration Stamp Badge */}
-      <motion.div
-        whileHover={{ scale: 1.05, rotate: -2 }}
+      {/* Immigration Button with Hover Interaction */}
+      <motion.button
+        whileHover={{ 
+          scale: 1.05, 
+          y: -3,
+          boxShadow: "0 8px 25px rgba(0,0,0,0.15)"
+        }}
         whileTap={{ scale: 0.95 }}
-        className="absolute flex flex-col items-center justify-center cursor-pointer"
+        transition={{
+          type: "spring",
+          stiffness: 400,
+          damping: 17
+        }}
+        className="absolute cursor-pointer"
         style={{
           right: "80px",
           bottom: "56px",
-          width: "160px",
-          height: "60px",
-          background: "linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(4 55% 42%) 100%)",
-          borderRadius: "8px",
-          boxShadow: "3px 4px 8px rgba(0,0,0,0.2)",
+          width: "200px",
+          padding: 0,
+          border: "none",
+          background: "transparent",
         }}
         onClick={handleBadgeClick}
       >
-        <div className="flex items-center gap-2 text-white">
-          <span className="text-lg">✓</span>
-          <span
-            style={{
-              fontSize: "16px",
-              fontWeight: 700,
-              letterSpacing: "0.02em",
-            }}
-          >
-            입국심사받기
-          </span>
-        </div>
-        <span
-          className="text-white/90"
-          style={{
-            fontSize: "10px",
-            fontWeight: 600,
-            letterSpacing: "0.08em",
+        <motion.img
+          src={immigrationButton}
+          alt="입국심사받기 Immigration"
+          className="w-full h-auto"
+          whileHover={{
+            filter: "brightness(1.05)"
           }}
-        >
-          IMMIGRATION
-        </span>
-      </motion.div>
+        />
+      </motion.button>
     </>
   );
 };

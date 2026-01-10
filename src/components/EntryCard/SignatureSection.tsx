@@ -35,21 +35,27 @@ const SignatureSection = ({
         >
           서명 (Signature):
         </span>
-        <input
-          type="text"
-          value={signature}
-          onChange={(e) => onSignatureChange(e.target.value)}
-          className="dashed-line text-foreground ml-3"
-          style={{
-            width: "300px",
-            height: "28px",
-            fontSize: "18px",
-          }}
-        />
+        <div 
+          className="relative ml-3"
+          style={{ width: "300px" }}
+        >
+          <input
+            type="text"
+            value={signature}
+            onChange={(e) => onSignatureChange(e.target.value)}
+            placeholder="여기에 서명하세요"
+            className="signature-field text-foreground w-full placeholder:text-muted-foreground/40 handwriting"
+            style={{
+              height: "36px",
+              fontSize: "24px",
+              letterSpacing: "0.02em",
+            }}
+          />
+        </div>
       </div>
 
       {/* Date Field */}
-      <div className="absolute flex items-center" style={{ left: "64px", top: "648px" }}>
+      <div className="absolute flex items-center" style={{ left: "64px", top: "656px" }}>
         <span
           className="text-foreground"
           style={{
@@ -59,17 +65,16 @@ const SignatureSection = ({
         >
           날짜 (Date):
         </span>
-        <input
-          type="text"
-          value={date}
-          onChange={(e) => onDateChange(e.target.value)}
-          className="dashed-line text-foreground ml-3"
+        <span
+          className="ml-3 text-foreground handwriting"
           style={{
-            width: "200px",
-            height: "28px",
-            fontSize: "18px",
+            fontSize: "22px",
+            fontWeight: 500,
+            letterSpacing: "0.02em",
           }}
-        />
+        >
+          {date}
+        </span>
       </div>
     </>
   );
