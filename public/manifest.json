@@ -1,0 +1,17 @@
+{
+  "name": "GGUMDDI NATION ENTRY CARD",
+  "short_name": "GGUMDDI",
+  "description": "GGUMDDI Nation Entry Card Application",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F3EEE7",
+  "theme_color": "#2C3A3F",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

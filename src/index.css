@@ -2,95 +2,102 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* GGUMDDI Nation Entry Card Design System */
+
+@font-face {
+  font-family: 'Pretendard';
+  src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+}
+
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Paper background */
+    --background: 36 33% 93%;
+    --foreground: 0 0% 18%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Card colors */
+    --card: 36 33% 93%;
+    --card-foreground: 0 0% 18%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 36 33% 93%;
+    --popover-foreground: 0 0% 18%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Dark teal from header */
+    --primary: 195 18% 21%;
+    --primary-foreground: 36 33% 93%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary */
+    --secondary: 36 10% 72%;
+    --secondary-foreground: 0 0% 18%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted - For descriptions */
+    --muted: 0 0% 42%;
+    --muted-foreground: 0 0% 42%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - Red ribbon */
+    --accent: 4 47% 49%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Destructive */
+    --destructive: 4 47% 49%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Borders and inputs */
+    --border: 36 10% 72%;
+    --input: 36 10% 72%;
+    --ring: 195 18% 21%;
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Sidebar (not used but keeping for compatibility) */
+    --sidebar-background: 36 33% 93%;
+    --sidebar-foreground: 0 0% 18%;
+    --sidebar-primary: 195 18% 21%;
+    --sidebar-primary-foreground: 36 33% 93%;
+    --sidebar-accent: 36 10% 72%;
+    --sidebar-accent-foreground: 0 0% 18%;
+    --sidebar-border: 36 10% 72%;
+    --sidebar-ring: 195 18% 21%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Custom GGUMDDI colors */
+    --paper-base: 36 33% 93%;
+    --text-primary: 0 0% 18%;
+    --text-secondary: 0 0% 42%;
+    --line-dashed: 36 10% 72%;
+    --checkbox-border: 0 0% 55%;
+    --ribbon-red: 4 47% 49%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 36 33% 93%;
+    --foreground: 0 0% 18%;
+    --card: 36 33% 93%;
+    --card-foreground: 0 0% 18%;
+    --popover: 36 33% 93%;
+    --popover-foreground: 0 0% 18%;
+    --primary: 195 18% 21%;
+    --primary-foreground: 36 33% 93%;
+    --secondary: 36 10% 72%;
+    --secondary-foreground: 0 0% 18%;
+    --muted: 0 0% 42%;
+    --muted-foreground: 0 0% 42%;
+    --accent: 4 47% 49%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 4 47% 49%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 36 10% 72%;
+    --input: 36 10% 72%;
+    --ring: 195 18% 21%;
+    --sidebar-background: 36 33% 93%;
+    --sidebar-foreground: 0 0% 18%;
+    --sidebar-primary: 195 18% 21%;
+    --sidebar-primary-foreground: 36 33% 93%;
+    --sidebar-accent: 36 10% 72%;
+    --sidebar-accent-foreground: 0 0% 18%;
+    --sidebar-border: 36 10% 72%;
+    --sidebar-ring: 195 18% 21%;
   }
 }
 
@@ -101,5 +108,64 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   }
+}
+
+/* Paper texture background */
+.paper-texture {
+  background:
+    linear-gradient(0deg,
+      rgba(0,0,0,0.02),
+      rgba(0,0,0,0.02)
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(0,0,0,0.015),
+      rgba(0,0,0,0.015) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  background-color: hsl(var(--paper-base));
+}
+
+/* Custom checkbox styling */
+.custom-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid hsl(var(--checkbox-border));
+  border-radius: 2px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+}
+
+.custom-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  font-weight: 700;
+  color: hsl(var(--text-primary));
+}
+
+/* Dashed input lines */
+.dashed-line {
+  border: none;
+  border-bottom: 1px dashed hsl(var(--line-dashed));
+  background: transparent;
+  outline: none;
+}
+
+/* Dashed textarea */
+.dashed-textarea {
+  border: 1px dashed hsl(var(--line-dashed));
+  border-radius: 10px;
+  background: transparent;
+  outline: none;
+  resize: none;
 }
