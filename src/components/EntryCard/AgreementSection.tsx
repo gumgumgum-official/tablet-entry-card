@@ -28,14 +28,14 @@ const AgreementItem = ({ text, checked, onChange, top }: AgreementItemProps) => 
       checked={checked}
       onChange={(e) => onChange(e.target.checked)}
       className="custom-checkbox flex-shrink-0"
-      style={{ marginTop: "2px" }}
+      style={{ marginTop: "3px" }}
     />
     <span
       className="text-foreground"
       style={{
-        fontSize: "16px",
-        lineHeight: "24px",
-        maxWidth: "860px",
+        fontSize: "14px",
+        lineHeight: "22px",
+        maxWidth: "700px",
       }}
     >
       {text}
@@ -58,32 +58,32 @@ const AgreementSection = ({
         className="absolute text-foreground"
         style={{
           left: "64px",
-          top: "508px",
-          fontSize: "22px",
-          fontWeight: 700,
+          top: "420px",
+          fontSize: "17px",
+          fontWeight: 600,
         }}
       >
-        동의사항 (Agreements)
+        입국을 위해 아래의 사항에 모두 동의하십니까?
       </h2>
 
       {/* Agreement Items */}
       <AgreementItem
-        text="본인은 꿈띠 나라의 규칙을 준수할 것을 동의합니다."
+        text="위 걱정은 100% 본인의 순도 높은 고민이며, 거짓 걱정일 경우 입국 즉시 껌딱지로 변해도 할 말이 없습니다."
         checked={agreement1}
         onChange={onAgreement1Change}
-        top={552}
+        top={454}
       />
       <AgreementItem
-        text="본인은 다른 여행자들을 존중하고 배려할 것을 동의합니다."
+        text="껌딱지 월드의 강력한 귀여움에 심장이 멎을 수 있음을 인지하였으며, 기꺼이 힐링을 받을 준비가 되었습니다."
         checked={agreement2}
         onChange={onAgreement2Change}
-        top={596}
+        top={498}
       />
       <AgreementItem
-        text="본인은 걱정을 내려놓고 즐거운 여행을 할 것을 동의합니다."
+        text='내 걱정이 다른 여행자들에게 "아, 나만 아린 게 아니구나" 하는 위안의 메시지로 슬쩍 노출되어도 너그럽게 이해하겠습니다.'
         checked={agreement3}
         onChange={onAgreement3Change}
-        top={640}
+        top={542}
       />
     </>
   );

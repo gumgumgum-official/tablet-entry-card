@@ -1,8 +1,12 @@
 interface PurposeSectionProps {
   tourism: boolean;
+  study: boolean;
+  employment: boolean;
   business: boolean;
   worryFree: boolean;
   onTourismChange: (value: boolean) => void;
+  onStudyChange: (value: boolean) => void;
+  onEmploymentChange: (value: boolean) => void;
   onBusinessChange: (value: boolean) => void;
   onWorryFreeChange: (value: boolean) => void;
 }
@@ -11,13 +15,12 @@ interface CheckboxItemProps {
   label: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
-  style?: React.CSSProperties;
 }
 
-const CheckboxItem = ({ label, checked, onChange, style }: CheckboxItemProps) => (
+const CheckboxItem = ({ label, checked, onChange }: CheckboxItemProps) => (
   <label
     className="flex items-center cursor-pointer"
-    style={{ gap: "10px", ...style }}
+    style={{ gap: "8px" }}
   >
     <input
       type="checkbox"
@@ -28,7 +31,7 @@ const CheckboxItem = ({ label, checked, onChange, style }: CheckboxItemProps) =>
     <span
       className="text-foreground"
       style={{
-        fontSize: "18px",
+        fontSize: "16px",
         fontWeight: 500,
       }}
     >
@@ -39,9 +42,13 @@ const CheckboxItem = ({ label, checked, onChange, style }: CheckboxItemProps) =>
 
 const PurposeSection = ({
   tourism,
+  study,
+  employment,
   business,
   worryFree,
   onTourismChange,
+  onStudyChange,
+  onEmploymentChange,
   onBusinessChange,
   onWorryFreeChange,
 }: PurposeSectionProps) => {
@@ -52,50 +59,74 @@ const PurposeSection = ({
         className="absolute text-foreground"
         style={{
           left: "64px",
-          top: "176px",
-          fontSize: "22px",
-          fontWeight: 700,
+          top: "144px",
+          fontSize: "18px",
+          fontWeight: 600,
         }}
       >
-        입국목적 (Purpose of Entry)
+        입국목적 (Purpose of Visit):
       </h2>
 
-      {/* First Row of Checkboxes */}
+      {/* Checkboxes Row */}
       <div
-        className="absolute flex"
+        className="absolute flex flex-wrap"
         style={{
           left: "64px",
-          top: "224px",
-          gap: "32px",
+          top: "176px",
+          gap: "24px",
         }}
       >
         <CheckboxItem
-          label="관광 (Tourism)"
+          label="관광 Tourism"
           checked={tourism}
           onChange={onTourismChange}
         />
         <CheckboxItem
-          label="사업 (Business)"
+          label="공부 Study"
+          checked={study}
+          onChange={onStudyChange}
+        />
+        <CheckboxItem
+          label="취업 Employment"
+          checked={employment}
+          onChange={onEmploymentChange}
+        />
+        <CheckboxItem
+          label="업무 Business"
           checked={business}
           onChange={onBusinessChange}
         />
       </div>
 
-      {/* Second Row of Checkboxes */}
+      {/* Second Row - Worry Free with checkmark */}
       <div
-        className="absolute flex"
+        className="absolute flex items-center"
         style={{
           left: "64px",
-          top: "264px",
-          gap: "32px",
+          top: "212px",
+          gap: "8px",
         }}
       >
         <CheckboxItem
-          label="걱정해소 (Worry-Free)"
+          label="걱정 해소 Worry-Free Entry"
           checked={worryFree}
           onChange={onWorryFreeChange}
         />
+        {worryFree && (
+          <span style={{ fontSize: "16px" }}>💕</span>
+        )}
       </div>
+
+      {/* Horizontal divider */}
+      <div
+        className="absolute bg-border"
+        style={{
+          left: "64px",
+          top: "248px",
+          width: "720px",
+          height: "1px",
+        }}
+      />
     </>
   );
 };
