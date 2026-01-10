@@ -11,6 +11,8 @@ import AssetPlaceholders from "./AssetPlaceholders";
 export interface EntryCardData {
   name: string;
   purposeTourism: boolean;
+  purposeStudy: boolean;
+  purposeEmployment: boolean;
   purposeBusiness: boolean;
   purposeWorryFree: boolean;
   worryDescription: string;
@@ -25,8 +27,10 @@ const EntryCardCanvas = () => {
   const [formData, setFormData] = useState<EntryCardData>({
     name: "",
     purposeTourism: false,
+    purposeStudy: false,
+    purposeEmployment: false,
     purposeBusiness: false,
-    purposeWorryFree: false,
+    purposeWorryFree: true, // Default checked as per spec
     worryDescription: "",
     agreement1: false,
     agreement2: false,
@@ -53,6 +57,7 @@ const EntryCardCanvas = () => {
           width: "1180px",
           height: "820px",
           boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+          borderRadius: "16px",
         }}
       >
         {/* Header */}
@@ -67,9 +72,13 @@ const EntryCardCanvas = () => {
         {/* Purpose Section */}
         <PurposeSection
           tourism={formData.purposeTourism}
+          study={formData.purposeStudy}
+          employment={formData.purposeEmployment}
           business={formData.purposeBusiness}
           worryFree={formData.purposeWorryFree}
           onTourismChange={(value) => updateField("purposeTourism", value)}
+          onStudyChange={(value) => updateField("purposeStudy", value)}
+          onEmploymentChange={(value) => updateField("purposeEmployment", value)}
           onBusinessChange={(value) => updateField("purposeBusiness", value)}
           onWorryFreeChange={(value) => updateField("purposeWorryFree", value)}
         />

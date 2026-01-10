@@ -1,3 +1,6 @@
+import { useEffect } from "react";
+import { format } from "date-fns";
+
 interface SignatureSectionProps {
   signature: string;
   date: string;
@@ -11,14 +14,22 @@ const SignatureSection = ({
   onSignatureChange,
   onDateChange,
 }: SignatureSectionProps) => {
+  // Set today's date on mount
+  useEffect(() => {
+    if (!date) {
+      const today = format(new Date(), "yyyy / MM / dd");
+      onDateChange(today);
+    }
+  }, [date, onDateChange]);
+
   return (
     <>
       {/* Signature Field */}
-      <div className="absolute" style={{ left: "64px", top: "688px" }}>
+      <div className="absolute flex items-center" style={{ left: "64px", top: "600px" }}>
         <span
           className="text-foreground"
           style={{
-            fontSize: "18px",
+            fontSize: "16px",
             fontWeight: 500,
           }}
         >
@@ -28,23 +39,21 @@ const SignatureSection = ({
           type="text"
           value={signature}
           onChange={(e) => onSignatureChange(e.target.value)}
-          className="dashed-line absolute text-foreground"
+          className="dashed-line text-foreground ml-3"
           style={{
-            left: "140px",
-            top: "4px",
-            width: "280px",
-            height: "24px",
+            width: "300px",
+            height: "28px",
             fontSize: "18px",
           }}
         />
       </div>
 
       {/* Date Field */}
-      <div className="absolute" style={{ left: "64px", top: "736px" }}>
+      <div className="absolute flex items-center" style={{ left: "64px", top: "648px" }}>
         <span
           className="text-foreground"
           style={{
-            fontSize: "18px",
+            fontSize: "16px",
             fontWeight: 500,
           }}
         >
@@ -54,13 +63,10 @@ const SignatureSection = ({
           type="text"
           value={date}
           onChange={(e) => onDateChange(e.target.value)}
-          placeholder="YYYY / MM / DD"
-          className="dashed-line absolute text-foreground"
+          className="dashed-line text-foreground ml-3"
           style={{
-            left: "120px",
-            top: "4px",
-            width: "180px",
-            height: "24px",
+            width: "200px",
+            height: "28px",
             fontSize: "18px",
           }}
         />
