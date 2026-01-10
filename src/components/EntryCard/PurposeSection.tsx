@@ -77,22 +77,22 @@ const PurposeSection = ({
         }}
       >
         <CheckboxItem
-          label="관광 Tourism"
+          label="관광 (Tourism)"
           checked={tourism}
           onChange={onTourismChange}
         />
         <CheckboxItem
-          label="공부 Study"
+          label="공부 (Study)"
           checked={study}
           onChange={onStudyChange}
         />
         <CheckboxItem
-          label="취업 Employment"
+          label="취업 (Employment)"
           checked={employment}
           onChange={onEmploymentChange}
         />
         <CheckboxItem
-          label="업무 Business"
+          label="업무 (Business)"
           checked={business}
           onChange={onBusinessChange}
         />
@@ -108,13 +108,10 @@ const PurposeSection = ({
         }}
       >
         <CheckboxItem
-          label="걱정 해소 Worry-Free Entry"
+          label="걱정 해소 (Worry-Free Entry)"
           checked={worryFree}
           onChange={onWorryFreeChange}
         />
-        {worryFree && (
-          <span style={{ fontSize: "16px" }}>💕</span>
-        )}
       </div>
 
       {/* Horizontal divider */}

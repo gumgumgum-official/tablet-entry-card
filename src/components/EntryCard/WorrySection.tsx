@@ -24,7 +24,7 @@ const WorrySection = ({ value, onChange }: WorrySectionProps) => {
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="여기에 걱정을 적으시면 '껌딱' 지돈에서 대신 우쭈쭈해드립니다."
+        placeholder="여기에 걱정을 적으시면 껌딱지월드에서 대신 우쭈쭈해드립니다."
         className="dashed-textarea absolute text-foreground placeholder:text-muted-foreground/60"
         style={{
           left: "64px",

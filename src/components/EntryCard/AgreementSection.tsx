@@ -68,7 +68,7 @@ const AgreementSection = ({
 
       {/* Agreement Items */}
       <AgreementItem
-        text="위 걱정은 100% 본인의 순도 높은 고민이며, 거짓 걱정일 경우 입국 즉시 껌딱지로 변해도 할 말이 없습니다."
+        text="위 걱정은 100% 본인의 순도 높은 고민이며, 거짓일 경우 입국 즉시 껌딱지로 변해도 할 말이 없습니다."
         checked={agreement1}
         onChange={onAgreement1Change}
         top={454}
@@ -80,7 +80,7 @@ const AgreementSection = ({
         top={498}
       />
       <AgreementItem
-        text='내 걱정이 다른 여행자들에게 "아, 나만 아린 게 아니구나" 하는 위안의 메시지로 슬쩍 노출되어도 너그럽게 이해하겠습니다.'
+        text='내 걱정이 다른 여행자들에게 "아, 나만 이런 게 아니구나" 하는 위안의 메시지로 슬쩍 노출되어도 너그럽게 이해하겠습니다.'
         checked={agreement3}
         onChange={onAgreement3Change}
         top={542}
