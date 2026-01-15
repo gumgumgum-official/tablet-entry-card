@@ -59,7 +59,7 @@ const PurposeSection = ({
         className="absolute text-foreground"
         style={{
           left: "64px",
-          top: "144px",
+          top: "172px",
           fontSize: "18px",
           fontWeight: 600,
         }}
@@ -72,7 +72,7 @@ const PurposeSection = ({
         className="absolute flex flex-wrap"
         style={{
           left: "64px",
-          top: "176px",
+          top: "204px",
           gap: "24px",
         }}
       >
@@ -103,7 +103,7 @@ const PurposeSection = ({
         className="absolute flex items-center"
         style={{
           left: "64px",
-          top: "212px",
+          top: "240px",
           gap: "8px",
         }}
       >
@@ -119,7 +119,7 @@ const PurposeSection = ({
         className="absolute bg-border"
         style={{
           left: "64px",
-          top: "248px",
+          top: "276px",
           width: "720px",
           height: "1px",
         }}

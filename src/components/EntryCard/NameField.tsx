@@ -5,7 +5,7 @@ interface NameFieldProps {
 
 const NameField = ({ value, onChange }: NameFieldProps) => {
   return (
-    <div className="absolute flex items-center" style={{ left: "64px", top: "100px" }}>
+    <div className="absolute flex items-center" style={{ left: "64px", top: "128px" }}>
       <span
         className="text-foreground"
         style={{
