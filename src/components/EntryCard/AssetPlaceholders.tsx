@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import type { EntryCardData } from "./EntryCardCanvas";
-import stampBadge from "@/assets/stamp-badge.png";
+import stampBadge from "@/assets/stamp.png";
 import immigrationButton from "@/assets/immigration-button.png";
 import bearOfficer from "@/assets/bear-officer.png";
 
@@ -29,25 +29,14 @@ const AssetPlaceholders = ({ formData }: AssetPlaceholdersProps) => {
         }}
       />
 
-      {/* Bear Officer Illustration */}
-      <img
-        src={bearOfficer}
-        alt="Bear Immigration Officer"
-        className="absolute pointer-events-none"
-        style={{
-          right: "48px",
-          bottom: "48px",
-          width: "280px",
-          height: "auto",
-        }}
-      />
-
-      {/* Immigration Button with Hover Interaction */}
-      <motion.button
-        whileHover={{ 
-          scale: 1.05, 
-          y: -3,
-          boxShadow: "0 8px 25px rgba(0,0,0,0.15)"
+      {/* Immigration Button with Hover Interaction - positioned at bottom left of bear */}
+      <motion.img
+        src={immigrationButton}
+        alt="입국심사받기 Immigration"
+        onClick={handleBadgeClick}
+        whileHover={{
+          scale: 1.08,
+          filter: "brightness(1.1) drop-shadow(0 6px 12px rgba(0,0,0,0.2))",
         }}
         whileTap={{ scale: 0.95 }}
         transition={{
@@ -57,24 +46,28 @@ const AssetPlaceholders = ({ formData }: AssetPlaceholdersProps) => {
         }}
         className="absolute cursor-pointer"
         style={{
-          right: "80px",
-          bottom: "56px",
-          width: "200px",
-          padding: 0,
-          border: "none",
-          background: "transparent",
+          right: "100px",
+          bottom: "-40px",
+          width: "440px",
+          height: "auto",
+          zIndex: 20,
+          filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.15))",
         }}
-        onClick={handleBadgeClick}
-      >
-        <motion.img
-          src={immigrationButton}
-          alt="입국심사받기 Immigration"
-          className="w-full h-auto"
-          whileHover={{
-            filter: "brightness(1.05)"
-          }}
-        />
-      </motion.button>
+      />
+
+      {/* Bear Officer Illustration - positioned to the right of button */}
+      <img
+        src={bearOfficer}
+        alt="Bear Immigration Officer"
+        className="absolute pointer-events-none"
+        style={{
+          right: "-60px",
+          bottom: "24px",
+          width: "390px",
+          height: "auto",
+          zIndex: 30,
+        }}
+      />
     </>
   );
 };

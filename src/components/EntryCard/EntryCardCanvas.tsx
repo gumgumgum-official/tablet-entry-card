@@ -7,6 +7,7 @@ import WorrySection from "./WorrySection";
 import AgreementSection from "./AgreementSection";
 import SignatureSection from "./SignatureSection";
 import AssetPlaceholders from "./AssetPlaceholders";
+import backgroundImage from "@/assets/background.png";
 
 export interface EntryCardData {
   name: string;
@@ -47,17 +48,21 @@ const EntryCardCanvas = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-muted/30 overflow-hidden">
+    <div className="min-h-screen w-full flex items-center justify-center warm-paper-bg overflow-hidden p-8">
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="paper-texture relative"
+        className="relative"
         style={{
           width: "1180px",
           height: "820px",
           boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
           borderRadius: "16px",
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundSize: "100% 100%",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
         }}
       >
         {/* Header */}
