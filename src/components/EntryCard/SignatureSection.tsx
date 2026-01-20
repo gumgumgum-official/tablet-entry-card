@@ -8,6 +8,9 @@ interface SignatureSectionProps {
   onDateChange: (value: string) => void;
 }
 
+// 위치 오프셋 (WorrySection 변경에 따른 조정)
+const TOP_OFFSET = 48;
+
 const SignatureSection = ({
   signature,
   date,
@@ -155,7 +158,7 @@ const SignatureSection = ({
   return (
     <>
       {/* Signature Field */}
-      <div className="absolute flex items-center" style={{ left: "64px", top: "628px" }}>
+      <div className="absolute flex items-center" style={{ left: "64px", top: `${628 + TOP_OFFSET}px` }}>
         <span
           className="text-foreground"
           style={{
@@ -225,7 +228,7 @@ const SignatureSection = ({
       </div>
 
       {/* Date Field */}
-      <div className="absolute flex items-center" style={{ left: "64px", top: "684px" }}>
+      <div className="absolute flex items-center" style={{ left: "64px", top: `${684 + TOP_OFFSET}px` }}>
         <span
           className="text-foreground"
           style={{

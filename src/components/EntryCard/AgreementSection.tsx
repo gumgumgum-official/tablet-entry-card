@@ -43,6 +43,9 @@ const AgreementItem = ({ text, checked, onChange, top }: AgreementItemProps) => 
   </label>
 );
 
+// 위치 오프셋 (WorrySection 변경에 따른 조정)
+const TOP_OFFSET = 48;
+
 const AgreementSection = ({
   agreement1,
   agreement2,
@@ -58,7 +61,7 @@ const AgreementSection = ({
         className="absolute text-foreground"
         style={{
           left: "64px",
-          top: "448px",
+          top: `${448 + TOP_OFFSET}px`,
           fontSize: "17px",
           fontWeight: 600,
         }}
@@ -71,19 +74,19 @@ const AgreementSection = ({
         text="위 걱정은 100% 본인의 순도 높은 고민이며, 거짓일 경우 입국 즉시 껌딱지로 변해도 할 말이 없습니다."
         checked={agreement1}
         onChange={onAgreement1Change}
-        top={482}
+        top={482 + TOP_OFFSET}
       />
       <AgreementItem
         text="껌딱지 월드의 강력한 귀여움에 심장이 멎을 수 있음을 인지하였으며, 기꺼이 힐링을 받을 준비가 되었습니다."
         checked={agreement2}
         onChange={onAgreement2Change}
-        top={526}
+        top={526 + TOP_OFFSET}
       />
       <AgreementItem
         text='내 걱정이 다른 여행자들에게 "아, 나만 이런 게 아니구나" 하는 위안의 메시지로 슬쩍 노출되어도 너그럽게 이해하겠습니다.'
         checked={agreement3}
         onChange={onAgreement3Change}
-        top={570}
+        top={570 + TOP_OFFSET}
       />
     </>
   );
