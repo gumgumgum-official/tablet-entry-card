@@ -22,9 +22,9 @@ const AssetPlaceholders = ({ formData }: AssetPlaceholdersProps) => {
         alt="GGUMDDI NATION Stamp"
         className="absolute pointer-events-none"
         style={{
-          right: "32px",
+          right: "50px",
           top: "32px",
-          width: "220px",
+          width: "390px",
           height: "auto",
         }}
       />
