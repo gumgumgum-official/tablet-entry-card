@@ -48,7 +48,7 @@ const AssetPlaceholders = ({ formData }: AssetPlaceholdersProps) => {
         style={{
           right: "10px",
           bottom: "-60px",
-          width: "440px",
+          width: "400px",
           height: "auto",
           zIndex: 20,
           filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.15))",
@@ -61,8 +61,8 @@ const AssetPlaceholders = ({ formData }: AssetPlaceholdersProps) => {
         alt="Bear Immigration Officer"
         className="absolute pointer-events-none"
         style={{
-          right: "-10px",
-          bottom: "40px",
+          right: "-20px",
+          bottom: "30px",
           width: "200px",
           height: "auto",
           zIndex: 30,

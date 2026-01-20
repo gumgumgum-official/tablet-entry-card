@@ -43,8 +43,8 @@ const AgreementItem = ({ text, checked, onChange, top }: AgreementItemProps) => 
   </label>
 );
 
-// 위치 오프셋 (WorrySection 변경에 따른 조정)
-const TOP_OFFSET = 48;
+// 위치 오프셋 (WorrySection 캔버스 높이 증가에 따른 조정)
+const TOP_OFFSET = 80;
 
 const AgreementSection = ({
   agreement1,

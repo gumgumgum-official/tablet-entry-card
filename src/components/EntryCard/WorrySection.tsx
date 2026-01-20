@@ -14,7 +14,7 @@ const WorrySection = ({ value, onChange }: WorrySectionProps) => {
 
   // 캔버스 크기
   const canvasWidth = 720;
-  const canvasHeight = 100;
+  const canvasHeight = 150;
 
   // 위치 오프셋 (기존 대비 +28px)
     const TOP_OFFSET = 20;
@@ -166,7 +166,7 @@ const WorrySection = ({ value, onChange }: WorrySectionProps) => {
           top: "300px",
           fontSize: "15px",
           lineHeight: "22px",
-          maxWidth: "720px",
+          whiteSpace: "nowrap",
         }}
       >
         요즘 당신을 껌딱지처럼 따라다니며 괴롭히는 걱정거리를 아래에 가감없이 적어주세요. 입국 시 모두 압수될 예정입니다.
@@ -177,7 +177,7 @@ const WorrySection = ({ value, onChange }: WorrySectionProps) => {
         className="absolute"
         style={{
           left: "64px",
-          top: `${332 + TOP_OFFSET}px`,
+          top: `${320 + TOP_OFFSET}px`,
           width: `${canvasWidth}px`,
           height: `${canvasHeight}px`,
         }}
@@ -230,7 +230,7 @@ const WorrySection = ({ value, onChange }: WorrySectionProps) => {
         className="absolute bg-border"
         style={{
           left: "64px",
-          top: `${452 + TOP_OFFSET}px`,
+          top: `${502 + TOP_OFFSET}px`,
           width: "720px",
           height: "1px",
         }}
