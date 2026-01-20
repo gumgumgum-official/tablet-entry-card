@@ -1,1 +1,4 @@
 project_id = "arrfjlzllsercaagmmue"
+
+[functions.handwriting-to-svg]
+verify_jwt = false

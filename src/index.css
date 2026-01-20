@@ -1,7 +1,4 @@
 /* Font imports must be at the very top */
-@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Poor+Story&display=swap');
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
 
 @tailwind base;
@@ -107,7 +104,7 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Gowun Dodum', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   }
 }
 
@@ -187,9 +184,9 @@
   background-color: #F5F0E8;
 }
 
-/* Handwriting font class - 귀엽고 서툰 초딩 느낌 */
+/* Handwriting font class */
 .handwriting {
-  font-family: 'Poor Story', cursive;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 
 /* Signature field styling */
@@ -198,7 +195,7 @@
   border-bottom: 2px solid hsl(var(--text-primary));
   background: transparent;
   outline: none;
-  font-family: 'Caveat', cursive;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 
 /* Custom checkbox styling */

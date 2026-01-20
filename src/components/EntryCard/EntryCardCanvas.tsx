@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import HeaderSection from "./HeaderSection";
 import NameField from "./NameField";
 import PurposeSection from "./PurposeSection";
-import WorrySection from "./WorrySection";
+import WorrySection, { type WorrySectionHandle } from "./WorrySection";
 import AgreementSection from "./AgreementSection";
 import SignatureSection from "./SignatureSection";
 import AssetPlaceholders from "./AssetPlaceholders";
 import backgroundImage from "@/assets/background2.png";
+import { getSessionId } from "@/lib/submit";
 
 export interface EntryCardData {
   name: string;
@@ -31,7 +32,7 @@ const EntryCardCanvas = () => {
     purposeStudy: false,
     purposeEmployment: false,
     purposeBusiness: false,
-    purposeWorryFree: true, // Default checked as per spec
+    purposeWorryFree: true,
     worryDescription: "",
     agreement1: false,
     agreement2: false,
@@ -40,12 +41,35 @@ const EntryCardCanvas = () => {
     entryDate: "",
   });
 
+  // WorrySection ref
+  const worrySectionRef = useRef<WorrySectionHandle>(null);
+  
+  // Session ID (URL 파라미터 또는 환경변수)
+  const sessionId = getSessionId();
+
   const updateField = <K extends keyof EntryCardData>(
     field: K,
     value: EntryCardData[K]
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+  // 입국심사 버튼 클릭 핸들러
+  const handleImmigrationSubmit = useCallback(async () => {
+    if (!worrySectionRef.current) return;
+
+    const canSubmit = worrySectionRef.current.canSubmit();
+    if (!canSubmit) {
+      console.log("[EntryCard] Cannot submit - no content or already submitting");
+      return;
+    }
+
+    const success = await worrySectionRef.current.submit();
+    console.log("[EntryCard] Submit result:", success);
+  }, []);
+
+  // 전송 가능 여부
+  const canSubmit = worrySectionRef.current?.canSubmit() ?? false;
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center warm-paper-bg overflow-hidden p-8">
@@ -90,8 +114,10 @@ const EntryCardCanvas = () => {
 
         {/* Worry Section */}
         <WorrySection
+          ref={worrySectionRef}
           value={formData.worryDescription}
           onChange={(value) => updateField("worryDescription", value)}
+          sessionId={sessionId}
         />
 
         {/* Agreement Section */}
@@ -112,8 +138,12 @@ const EntryCardCanvas = () => {
           onDateChange={(value) => updateField("entryDate", value)}
         />
 
-        {/* Asset Placeholders */}
-        <AssetPlaceholders formData={formData} />
+        {/* Asset Placeholders - 입국심사 버튼 포함 */}
+        <AssetPlaceholders 
+          formData={formData}
+          onSubmit={handleImmigrationSubmit}
+          canSubmit={canSubmit}
+        />
       </motion.div>
     </div>
   );

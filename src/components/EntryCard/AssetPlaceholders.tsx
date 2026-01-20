@@ -6,12 +6,20 @@ import bearOfficer from "@/assets/bear-officer.png";
 
 interface AssetPlaceholdersProps {
   formData: EntryCardData;
+  /** 입국심사 버튼 클릭 핸들러 */
+  onSubmit?: () => void;
+  /** 제출 가능 여부 */
+  canSubmit?: boolean;
 }
 
-const AssetPlaceholders = ({ formData }: AssetPlaceholdersProps) => {
+const AssetPlaceholders = ({ 
+  formData, 
+  onSubmit,
+  canSubmit = true 
+}: AssetPlaceholdersProps) => {
   const handleBadgeClick = () => {
-    // Visual feedback only for now
-    console.log("Badge clicked - Form data:", formData);
+    console.log("[AssetPlaceholders] Immigration button clicked - Form data:", formData);
+    onSubmit?.();
   };
 
   return (
@@ -29,22 +37,22 @@ const AssetPlaceholders = ({ formData }: AssetPlaceholdersProps) => {
         }}
       />
 
-      {/* Immigration Button with Hover Interaction - positioned at bottom left of bear */}
+      {/* Immigration Button with Hover Interaction */}
       <motion.img
         src={immigrationButton}
         alt="입국심사받기 Immigration"
         onClick={handleBadgeClick}
-        whileHover={{
+        whileHover={canSubmit ? {
           scale: 1.05,
           filter: "brightness(1.1) drop-shadow(0 6px 12px rgba(0,0,0,0.2))",
-        }}
-        whileTap={{ scale: 0.95 }}
+        } : undefined}
+        whileTap={canSubmit ? { scale: 0.95 } : undefined}
         transition={{
           type: "spring",
           stiffness: 400,
           damping: 17
         }}
-        className="absolute cursor-pointer"
+        className="absolute"
         style={{
           right: "10px",
           bottom: "-60px",
@@ -52,10 +60,12 @@ const AssetPlaceholders = ({ formData }: AssetPlaceholdersProps) => {
           height: "auto",
           zIndex: 20,
           filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.15))",
+          cursor: canSubmit ? "pointer" : "not-allowed",
+          opacity: canSubmit ? 1 : 0.6,
         }}
       />
 
-      {/* Bear Officer Illustration - positioned to the right of button */}
+      {/* Bear Officer Illustration */}
       <img
         src={bearOfficer}
         alt="Bear Immigration Officer"
