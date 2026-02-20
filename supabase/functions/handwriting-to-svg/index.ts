@@ -1,9 +1,9 @@
 /**
  * Handwriting to SVG Edge Function
- * 
+ *
  * 태블릿에서 수집한 strokes를 SVG로 변환하고
  * Storage에 저장 후 Realtime으로 스크린에 알림
- * 
+ *
  * 배포: supabase functions deploy handwriting-to-svg
  */
 
@@ -269,7 +269,7 @@ serve(async (req: Request) => {
 
     // 4. Idempotency 체크 (동일 키가 이미 존재하는지 확인)
     const storagePath = `${sessionId}/${idempotencyKey}.svg`;
-    
+
     const { data: existingFile } = await supabase.storage
       .from(STORAGE_BUCKET)
       .list(sessionId, {
@@ -279,7 +279,7 @@ serve(async (req: Request) => {
     if (existingFile && existingFile.length > 0) {
       // 이미 처리된 요청 - 기존 결과 반환
       console.log(`[HandwritingToSVG] Idempotent request - returning existing: ${storagePath}`);
-      
+
       const { data: urlData } = supabase.storage
         .from(STORAGE_BUCKET)
         .getPublicUrl(storagePath);
@@ -330,12 +330,12 @@ serve(async (req: Request) => {
     // 8. Realtime Broadcast
     const channelName = `${REALTIME_CHANNEL_PREFIX}:${sessionId}`;
     const channel = supabase.channel(channelName);
-    
+
     let broadcasted = false;
-    
+
     try {
       await channel.subscribe();
-      
+
       await channel.send({
         type: "broadcast",
         event: "new_handwriting",
@@ -346,7 +346,7 @@ serve(async (req: Request) => {
           clientId,
         },
       });
-      
+
       broadcasted = true;
       console.log(`[HandwritingToSVG] Broadcasted to channel: ${channelName}`);
     } catch (broadcastError) {
@@ -356,19 +356,31 @@ serve(async (req: Request) => {
       await supabase.removeChannel(channel);
     }
 
-    // 9. (선택) DB 테이블에 기록
-    // 필요시 handwriting_records 테이블에 메타데이터 저장
-    /*
-    await supabase.from('handwriting_records').insert({
-      id: idempotencyKey,
-      session_id: sessionId,
-      client_id: clientId,
-      storage_path: storagePath,
-      stroke_count: strokes.length,
-      point_count: strokes.reduce((sum, s) => sum + s.length, 0),
-      created_at: meta.createdAt,
-    });
-    */
+    // 9. DB strokes 테이블에 기록 (Realtime 구독 + 대시보드 조회용)
+    const pointCount = strokes.reduce((sum, s) => sum + s.length, 0);
+    const { error: insertError } = await supabase
+      .from("strokes")
+      .insert({
+        file_url: publicUrl,
+        is_processed: false,
+        metadata: {
+          sessionId,
+          clientId,
+          idempotencyKey,
+          strokeCount: strokes.length,
+          pointCount,
+          width: canvas.width,
+          height: canvas.height,
+          createdAt: meta.createdAt,
+        },
+      });
+
+    if (insertError) {
+      console.error("[HandwritingToSVG] DB insert failed (non-fatal):", insertError);
+      // Storage + Broadcast는 성공했으므로 응답은 계속 반환
+    } else {
+      console.log("[HandwritingToSVG] Inserted into strokes table");
+    }
 
     // 10. 응답
     const response: ResponsePayload = {
@@ -389,10 +401,10 @@ serve(async (req: Request) => {
 
   } catch (error) {
     console.error("[HandwritingToSVG] Error:", error);
-    
+
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : "Internal server error" 
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Internal server error"
       }),
       {
         status: 500,
