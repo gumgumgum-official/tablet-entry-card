@@ -10,6 +10,7 @@ interface SignatureSectionProps {
 
 // 위치 오프셋 (WorrySection 캔버스 높이 증가에 따른 조정)
 const TOP_OFFSET = 80;
+const STROKE_WIDTH = 2.5;
 
 const SignatureSection = ({
   signature,
@@ -21,6 +22,7 @@ const SignatureSection = ({
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasContent, setHasContent] = useState(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const [isErasing, setIsErasing] = useState(false);
 
   // 캔버스 크기 설정
   const canvasWidth = 300;
@@ -64,15 +66,16 @@ const SignatureSection = ({
   // 좌표 추출
   const getPointFromEvent = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (e.pointerType !== "pen") return null;
+
       const canvas = canvasRef.current;
       if (!canvas) return null;
 
       const rect = canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) * (canvasWidth / rect.width);
       const y = (e.clientY - rect.top) * (canvasHeight / rect.height);
-      const pressure = e.pressure || 0.5;
 
-      return { x, y, pressure };
+      return { x, y };
     },
     []
   );
@@ -80,6 +83,7 @@ const SignatureSection = ({
   // 그리기 시작
   const startDrawing = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (e.pointerType !== "pen") return;
       e.preventDefault();
       setIsDrawing(true);
       setHasContent(true);
@@ -106,8 +110,11 @@ const SignatureSection = ({
       const point = getPointFromEvent(e);
       if (!point) return;
 
-      // 일정한 선 두께
-      const strokeWidth = 2.5;
+      const ctxMode = isErasing ? "destination-out" : "source-over";
+      ctx.save();
+      ctx.globalCompositeOperation = ctxMode;
+
+      const strokeWidth = isErasing ? STROKE_WIDTH * 2 : STROKE_WIDTH;
 
       // 캔버스에 그리기
       ctx.beginPath();
@@ -119,9 +126,11 @@ const SignatureSection = ({
       ctx.lineJoin = "round";
       ctx.stroke();
 
+      ctx.restore();
+
       lastPointRef.current = { x: point.x, y: point.y };
     },
-    [isDrawing, getPointFromEvent]
+    [isDrawing, getPointFromEvent, isErasing]
   );
 
   // 그리기 종료
@@ -209,20 +218,38 @@ const SignatureSection = ({
             onPointerCancel={stopDrawing}
           />
 
-          {/* Clear Button */}
+          {/* Eraser / Clear Buttons */}
           {hasContent && (
-            <button
-              onClick={clearCanvas}
-              className="absolute z-10 px-2 py-1 rounded text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/20 transition-all"
-              style={{
-                right: "-60px",
-                top: "50%",
-                transform: "translateY(-50%)",
-              }}
-              type="button"
-            >
-              지우기
-            </button>
+            <>
+              <button
+                onClick={() => setIsErasing((prev) => !prev)}
+                className={`absolute z-10 px-2 py-1 rounded text-xs transition-all ${
+                  isErasing
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/20"
+                }`}
+                style={{
+                  right: "-120px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                }}
+                type="button"
+              >
+                {isErasing ? "부분 지우개 ON" : "부분 지우개"}
+              </button>
+              <button
+                onClick={clearCanvas}
+                className="absolute z-10 px-2 py-1 rounded text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/20 transition-all"
+                style={{
+                  right: "-60px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                }}
+                type="button"
+              >
+                전체 지우기
+              </button>
+            </>
           )}
         </div>
       </div>

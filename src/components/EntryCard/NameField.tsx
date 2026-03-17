@@ -5,11 +5,14 @@ interface NameFieldProps {
   onChange: (value: string) => void;
 }
 
+const STROKE_WIDTH = 2;
+
 const NameField = ({ value, onChange }: NameFieldProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasContent, setHasContent] = useState(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const [isErasing, setIsErasing] = useState(false);
 
   // 캔버스 크기
   const canvasWidth = 580;
@@ -43,21 +46,23 @@ const NameField = ({ value, onChange }: NameFieldProps) => {
 
   const getPointFromEvent = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (e.pointerType !== "pen") return null;
+
       const canvas = canvasRef.current;
       if (!canvas) return null;
 
       const rect = canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) * (canvasWidth / rect.width);
       const y = (e.clientY - rect.top) * (canvasHeight / rect.height);
-      const pressure = e.pressure || 0.5;
 
-      return { x, y, pressure };
+      return { x, y };
     },
     []
   );
 
   const startDrawing = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (e.pointerType !== "pen") return;
       e.preventDefault();
       setIsDrawing(true);
       setHasContent(true);
@@ -83,7 +88,11 @@ const NameField = ({ value, onChange }: NameFieldProps) => {
       const point = getPointFromEvent(e);
       if (!point) return;
 
-      const strokeWidth = 1.5 + point.pressure * 2;
+      const ctxMode = isErasing ? "destination-out" : "source-over";
+      ctx.save();
+      ctx.globalCompositeOperation = ctxMode;
+
+      const strokeWidth = isErasing ? STROKE_WIDTH * 2 : STROKE_WIDTH;
 
       ctx.beginPath();
       ctx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
@@ -94,9 +103,11 @@ const NameField = ({ value, onChange }: NameFieldProps) => {
       ctx.lineJoin = "round";
       ctx.stroke();
 
+      ctx.restore();
+
       lastPointRef.current = { x: point.x, y: point.y };
     },
-    [isDrawing, getPointFromEvent]
+    [isDrawing, getPointFromEvent, isErasing]
   );
 
   const stopDrawing = useCallback(
@@ -173,16 +184,30 @@ const NameField = ({ value, onChange }: NameFieldProps) => {
           onPointerCancel={stopDrawing}
         />
 
-        {/* Clear Button */}
+        {/* Eraser / Clear Buttons */}
         {hasContent && (
-          <button
-            onClick={clearCanvas}
-            className="absolute z-10 px-2 py-1 rounded text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/20 transition-all"
-            style={{ right: "-50px", top: "50%", transform: "translateY(-50%)" }}
-            type="button"
-          >
-            지우기
-          </button>
+          <>
+            <button
+              onClick={() => setIsErasing((prev) => !prev)}
+              className={`absolute z-10 px-2 py-1 rounded text-xs transition-all ${
+                isErasing
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/20"
+              }`}
+              style={{ right: "-110px", top: "50%", transform: "translateY(-50%)" }}
+              type="button"
+            >
+              {isErasing ? "부분 지우개 ON" : "부분 지우개"}
+            </button>
+            <button
+              onClick={clearCanvas}
+              className="absolute z-10 px-2 py-1 rounded text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/20 transition-all"
+              style={{ right: "-50px", top: "50%", transform: "translateY(-50%)" }}
+              type="button"
+            >
+              전체 지우기
+            </button>
+          </>
         )}
       </div>
     </div>

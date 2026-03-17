@@ -27,12 +27,15 @@ export interface WorrySectionHandle {
   clear: () => void;
 }
 
+const STROKE_WIDTH = 5;
+
 const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
   ({ value, onChange, sessionId }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [hasContent, setHasContent] = useState(false);
     const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+    const [mode, setMode] = useState<"draw" | "erase">("draw");
 
     // Strokes 수집
     const strokesRef = useRef<SubmitPoint[][]>([]);
@@ -77,13 +80,15 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
     const getPointFromEvent = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>): SubmitPoint | null => {
+        if (e.pointerType !== "pen") return null;
+
         const canvas = canvasRef.current;
         if (!canvas) return null;
 
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) * (canvasWidth / rect.width);
         const y = (e.clientY - rect.top) * (canvasHeight / rect.height);
-        const pressure = e.pressure || 0.5;
+        const pressure = 0.5;
 
         return {
           x,
@@ -97,6 +102,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
     const startDrawing = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
+        if (e.pointerType !== "pen") return;
         e.preventDefault();
         setIsDrawing(true);
         setHasContent(true);
@@ -104,12 +110,14 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         const point = getPointFromEvent(e);
         if (point) {
           lastPointRef.current = { x: point.x, y: point.y };
-          currentStrokeRef.current = [point];
+          if (mode === "draw") {
+            currentStrokeRef.current = [point];
+          }
         }
 
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
       },
-      [getPointFromEvent]
+      [getPointFromEvent, mode]
     );
 
     const draw = useCallback(
@@ -123,8 +131,11 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         const point = getPointFromEvent(e);
         if (!point) return;
 
-        // 현재 두께의 절반 정도로 조정
-        const strokeWidth = 5 + point.p * 8;
+        const ctxMode = mode === "erase" ? "destination-out" : "source-over";
+        ctx.save();
+        ctx.globalCompositeOperation = ctxMode;
+
+        const strokeWidth = mode === "erase" ? STROKE_WIDTH * 2 : STROKE_WIDTH;
 
         ctx.beginPath();
         ctx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
@@ -135,10 +146,15 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         ctx.lineJoin = "round";
         ctx.stroke();
 
+        ctx.restore();
+
         lastPointRef.current = { x: point.x, y: point.y };
-        currentStrokeRef.current.push(point);
+
+        if (mode === "draw") {
+          currentStrokeRef.current.push(point);
+        }
       },
-      [isDrawing, getPointFromEvent]
+      [isDrawing, getPointFromEvent, mode]
     );
 
     const stopDrawing = useCallback(
@@ -148,8 +164,69 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         setIsDrawing(false);
         lastPointRef.current = null;
 
-        if (currentStrokeRef.current.length > 0) {
-          strokesRef.current.push([...currentStrokeRef.current]);
+        if (mode === "draw") {
+          if (currentStrokeRef.current.length > 0) {
+            strokesRef.current.push([...currentStrokeRef.current]);
+            currentStrokeRef.current = [];
+          }
+        } else if (mode === "erase") {
+          // 지우개 모드에서는 현재 strokesRef를 기준으로 캔버스를 재구성
+          const erasePoints = [...currentStrokeRef.current];
+          if (erasePoints.length > 0) {
+            const threshold = STROKE_WIDTH * 2;
+            const thresholdSq = threshold * threshold;
+
+            const filteredStrokes: SubmitPoint[][] = [];
+
+            for (const stroke of strokesRef.current) {
+              const remainingPoints: SubmitPoint[] = [];
+
+              for (const pt of stroke) {
+                const hit = erasePoints.some((ep) => {
+                  const dx = ep.x - pt.x;
+                  const dy = ep.y - pt.y;
+                  return dx * dx + dy * dy <= thresholdSq;
+                });
+
+                if (!hit) {
+                  remainingPoints.push(pt);
+                }
+              }
+
+              if (remainingPoints.length > 1) {
+                filteredStrokes.push(remainingPoints);
+              }
+            }
+
+            strokesRef.current = filteredStrokes;
+
+            if (canvas) {
+              ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+              ctx.save();
+              ctx.globalCompositeOperation = "source-over";
+              ctx.strokeStyle = "hsl(0, 0%, 18%)";
+              ctx.lineWidth = STROKE_WIDTH;
+              ctx.lineCap = "round";
+              ctx.lineJoin = "round";
+
+              for (const stroke of strokesRef.current) {
+                if (stroke.length < 2) continue;
+                ctx.beginPath();
+                ctx.moveTo(stroke[0].x, stroke[0].y);
+                for (let i = 1; i < stroke.length; i++) {
+                  ctx.lineTo(stroke[i].x, stroke[i].y);
+                }
+                ctx.stroke();
+              }
+
+              ctx.restore();
+
+              const dataUrl = canvas.toDataURL("image/png");
+              onChange(dataUrl);
+            }
+          }
+
           currentStrokeRef.current = [];
         }
 
@@ -161,7 +238,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
         (e.target as HTMLElement).releasePointerCapture(e.pointerId);
       },
-      [isDrawing, onChange]
+      [isDrawing, mode, onChange]
     );
 
     const clearCanvas = useCallback(() => {
@@ -300,16 +377,32 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
             onPointerCancel={isSubmitting ? undefined : stopDrawing}
           />
 
-          {/* Clear Button */}
+          {/* Eraser / Clear Buttons */}
           {hasContent && !isSubmitting && (
-            <button
-              onClick={clearCanvas}
-              className="absolute z-10 px-2 py-1 rounded text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/20 transition-all"
-              style={{ right: "8px", top: "8px" }}
-              type="button"
-            >
-              지우기
-            </button>
+            <>
+              <button
+                onClick={() =>
+                  setMode((prev) => (prev === "draw" ? "erase" : "draw"))
+                }
+                className={`absolute z-10 px-2 py-1 rounded text-xs transition-all ${
+                  mode === "erase"
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/20"
+                }`}
+                style={{ right: "64px", top: "8px" }}
+                type="button"
+              >
+                {mode === "erase" ? "부분 지우개 ON" : "부분 지우개"}
+              </button>
+              <button
+                onClick={clearCanvas}
+                className="absolute z-10 px-2 py-1 rounded text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/20 transition-all"
+                style={{ right: "8px", top: "8px" }}
+                type="button"
+              >
+                전체 지우기
+              </button>
+            </>
           )}
         </div>
 
