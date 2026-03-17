@@ -43,7 +43,7 @@ const EntryCardCanvas = () => {
 
   // WorrySection ref
   const worrySectionRef = useRef<WorrySectionHandle>(null);
-  
+
   // Session ID (URL 파라미터 또는 환경변수)
   const sessionId = getSessionId();
 
@@ -72,7 +72,7 @@ const EntryCardCanvas = () => {
   const canSubmit = worrySectionRef.current?.canSubmit() ?? false;
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center warm-paper-bg overflow-hidden p-8">
+    <div className="min-h-screen w-full flex items-center justify-center warm-paper-bg overflow-hidden px-8 py-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -139,7 +139,7 @@ const EntryCardCanvas = () => {
         />
 
         {/* Asset Placeholders - 입국심사 버튼 포함 */}
-        <AssetPlaceholders 
+        <AssetPlaceholders
           formData={formData}
           onSubmit={handleImmigrationSubmit}
           canSubmit={canSubmit}

@@ -1,10 +1,10 @@
 import { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from "react";
 import { toast } from "sonner";
-import { 
-  submitStrokes, 
-  type SubmitPoint, 
+import {
+  submitStrokes,
+  type SubmitPoint,
   type SubmitStatus,
-  getQueueSize 
+  getQueueSize
 } from "@/lib/submit";
 
 interface WorrySectionProps {
@@ -33,21 +33,21 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
     const [isDrawing, setIsDrawing] = useState(false);
     const [hasContent, setHasContent] = useState(false);
     const lastPointRef = useRef<{ x: number; y: number } | null>(null);
-    
+
     // Strokes 수집
     const strokesRef = useRef<SubmitPoint[][]>([]);
     const currentStrokeRef = useRef<SubmitPoint[]>([]);
-    
+
     // 전송 상태
     const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('idle');
     const isSubmitting = submitStatus === 'submitting' || submitStatus === 'retrying';
 
     // 캔버스 크기
     const canvasWidth = 720;
-    const canvasHeight = 150;
+    const canvasHeight = 180;
 
     // 위치 오프셋
-    const TOP_OFFSET = 20;
+    const TOP_OFFSET = 0;
 
     // 캔버스 초기화
     useEffect(() => {
@@ -85,9 +85,9 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         const y = (e.clientY - rect.top) * (canvasHeight / rect.height);
         const pressure = e.pressure || 0.5;
 
-        return { 
-          x, 
-          y, 
+        return {
+          x,
+          y,
           t: Date.now(),
           p: pressure
         };
@@ -123,7 +123,8 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         const point = getPointFromEvent(e);
         if (!point) return;
 
-        const strokeWidth = 1.5 + point.p * 2;
+        // 현재 두께의 절반 정도로 조정
+        const strokeWidth = 5 + point.p * 8;
 
         ctx.beginPath();
         ctx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
@@ -171,7 +172,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
       ctx.clearRect(0, 0, canvasWidth, canvasHeight);
       setHasContent(false);
       onChange("");
-      
+
       strokesRef.current = [];
       currentStrokeRef.current = [];
     }, [onChange]);
@@ -179,7 +180,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
     // 전송 핸들러
     const handleSubmit = useCallback(async (): Promise<boolean> => {
       const strokes = strokesRef.current;
-      
+
       if (strokes.length === 0) {
         toast.error("전송할 내용이 없습니다.", {
           description: "먼저 걱정을 적어주세요.",
@@ -190,13 +191,13 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
       if (isSubmitting) return false;
 
       setSubmitStatus('submitting');
-      
+
       try {
         const result = await submitStrokes(strokes, {
           sessionId,
           canvas: { width: canvasWidth, height: canvasHeight },
           color: '#2E2E2E',
-          baseStrokeWidth: 3,
+          baseStrokeWidth: 6, // 현재 캔버스 선 두께와 맞춤
         });
 
         if (result.success) {
@@ -204,7 +205,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
           toast.success("입국 심사 완료!", {
             description: "걱정이 성공적으로 압수되었습니다.",
           });
-          
+
           setTimeout(() => setSubmitStatus('idle'), 2000);
           return true;
         } else if (result.queued) {

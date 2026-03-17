@@ -33,6 +33,7 @@ const CheckboxItem = ({ label, checked, onChange }: CheckboxItemProps) => (
       style={{
         fontSize: "16px",
         fontWeight: 500,
+        whiteSpace: "nowrap",
       }}
     >
       {label}
