@@ -40,6 +40,7 @@ export interface SubmitResponse {
   id: string;
   storagePathSvg: string;
   broadcasted: boolean;
+  seq: number;
 }
 
 /** 전송 결과 */

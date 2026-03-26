@@ -6,6 +6,15 @@ interface NameFieldProps {
 }
 
 const STROKE_WIDTH = 2;
+const ALLOW_NON_PEN_IN_DEV =
+  (typeof import.meta !== "undefined" &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (import.meta as any).env &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (import.meta as any).env.DEV) ||
+  (typeof process !== "undefined" &&
+    typeof process.env !== "undefined" &&
+    process.env.NODE_ENV !== "production");
 
 const NameField = ({ value, onChange }: NameFieldProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -46,8 +55,6 @@ const NameField = ({ value, onChange }: NameFieldProps) => {
 
   const getPointFromEvent = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (e.pointerType !== "pen") return null;
-
       const canvas = canvasRef.current;
       if (!canvas) return null;
 
@@ -62,7 +69,9 @@ const NameField = ({ value, onChange }: NameFieldProps) => {
 
   const startDrawing = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (e.pointerType !== "pen") return;
+      const isPen = e.pointerType === "pen";
+      const isAllowedMouse = ALLOW_NON_PEN_IN_DEV && e.pointerType === "mouse";
+      if (!isPen && !isAllowedMouse) return;
       e.preventDefault();
       setIsDrawing(true);
       setHasContent(true);

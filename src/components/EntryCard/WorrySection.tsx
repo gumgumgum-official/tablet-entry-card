@@ -4,8 +4,10 @@ import {
   submitStrokes,
   type SubmitPoint,
   type SubmitStatus,
-  getQueueSize
+  getQueueSize,
+  getClientId,
 } from "@/lib/submit";
+import { requestMonitorAssignment } from "@/lib/gum-server/requestMonitor";
 
 interface WorrySectionProps {
   value: string;
@@ -27,7 +29,18 @@ export interface WorrySectionHandle {
   clear: () => void;
 }
 
-const STROKE_WIDTH = 5;
+const STROKE_WIDTH = 6;
+const ALLOW_NON_PEN_IN_DEV =
+  // Vite DEV (브라우저)
+  (typeof import.meta !== "undefined" &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (import.meta as any).env &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (import.meta as any).env.DEV) ||
+  // Node 환경 (테스트 등)
+  (typeof process !== "undefined" &&
+    typeof process.env !== "undefined" &&
+    process.env.NODE_ENV !== "production");
 
 const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
   ({ value, onChange, sessionId }, ref) => {
@@ -80,15 +93,13 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
     const getPointFromEvent = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>): SubmitPoint | null => {
-        if (e.pointerType !== "pen") return null;
-
         const canvas = canvasRef.current;
         if (!canvas) return null;
 
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) * (canvasWidth / rect.width);
         const y = (e.clientY - rect.top) * (canvasHeight / rect.height);
-        const pressure = 0.5;
+        const pressure = e.pressure || 0.5;
 
         return {
           x,
@@ -102,7 +113,9 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
     const startDrawing = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
-        if (e.pointerType !== "pen") return;
+        const isPen = e.pointerType === "pen";
+        const isAllowedMouse = ALLOW_NON_PEN_IN_DEV && e.pointerType === "mouse";
+        if (!isPen && !isAllowedMouse) return;
         e.preventDefault();
         setIsDrawing(true);
         setHasContent(true);
@@ -135,7 +148,11 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         ctx.save();
         ctx.globalCompositeOperation = ctxMode;
 
-        const strokeWidth = mode === "erase" ? STROKE_WIDTH * 2 : STROKE_WIDTH;
+        // 이전 커밋과 비슷한 굵기 프로파일 유지
+        const strokeWidth =
+          mode === "erase"
+            ? STROKE_WIDTH * 2
+            : 5 + (point.p ?? 0.5) * 8;
 
         ctx.beginPath();
         ctx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
@@ -170,31 +187,25 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
             currentStrokeRef.current = [];
           }
         } else if (mode === "erase") {
-          // 지우개 모드에서는 현재 strokesRef를 기준으로 캔버스를 재구성
+          // 획 지우개: 지우개 경로에 조금이라도 닿은 stroke 전체 제거
           const erasePoints = [...currentStrokeRef.current];
           if (erasePoints.length > 0) {
-            const threshold = STROKE_WIDTH * 2;
+            const threshold = STROKE_WIDTH * 2.5;
             const thresholdSq = threshold * threshold;
 
             const filteredStrokes: SubmitPoint[][] = [];
 
             for (const stroke of strokesRef.current) {
-              const remainingPoints: SubmitPoint[] = [];
-
-              for (const pt of stroke) {
-                const hit = erasePoints.some((ep) => {
+              const hitStroke = stroke.some((pt) =>
+                erasePoints.some((ep) => {
                   const dx = ep.x - pt.x;
                   const dy = ep.y - pt.y;
                   return dx * dx + dy * dy <= thresholdSq;
-                });
+                })
+              );
 
-                if (!hit) {
-                  remainingPoints.push(pt);
-                }
-              }
-
-              if (remainingPoints.length > 1) {
-                filteredStrokes.push(remainingPoints);
+              if (!hitStroke) {
+                filteredStrokes.push(stroke);
               }
             }
 
@@ -221,9 +232,6 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
               }
 
               ctx.restore();
-
-              const dataUrl = canvas.toDataURL("image/png");
-              onChange(dataUrl);
             }
           }
 
@@ -278,10 +286,56 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         });
 
         if (result.success) {
+          const seq = result.data?.seq;
+          const storagePathSvg = result.data?.storagePathSvg;
+
           setSubmitStatus('success');
-          toast.success("입국 심사 완료!", {
-            description: "걱정이 성공적으로 압수되었습니다.",
-          });
+          if (typeof seq === "number") {
+            toast.success(`${seq}번째 고민이 추가되었습니다`, {
+              description: "모니터에 배정 요청을 보냈습니다.",
+            });
+          } else {
+            toast.success("고민이 추가되었습니다", {
+              description: "모니터 배정 요청을 진행합니다.",
+            });
+          }
+
+          // submit 성공 후: gum_server에 monitor 배정 요청
+          if (typeof seq === "number" && storagePathSvg) {
+            const assignment = await requestMonitorAssignment({
+              worryId: String(seq),
+              svgUrl: storagePathSvg,
+              sessionId,
+              clientId: getClientId(),
+            });
+            if (!assignment.ok) {
+              toast.warning("배정 요청이 실패했습니다.", {
+                description: "네트워크 상태 또는 gum_server 설정을 확인해주세요.",
+              });
+            } else if (assignment.assigned) {
+              const where =
+                assignment.position === "left"
+                  ? "왼쪽"
+                  : assignment.position === "right"
+                    ? "오른쪽"
+                    : "지정된";
+              toast.success("모니터 배정 완료", {
+                description: `${where} 모니터로 가세요.`,
+              });
+            } else if (assignment.state === "pending") {
+              const pendingText =
+                typeof assignment.queuePosition === "number"
+                  ? `${assignment.queuePosition}번째로 대기 중입니다.`
+                  : `${seq}번째 고민이 대기 중입니다.`;
+              toast.message("배정 대기 중", {
+                description: pendingText,
+              });
+            } else if (assignment.state === "expired") {
+              toast.warning("배정 시간이 만료되었습니다.", {
+                description: "다시 제출하거나 운영자에게 문의해주세요.",
+              });
+            }
+          }
 
           setTimeout(() => setSubmitStatus('idle'), 2000);
           return true;

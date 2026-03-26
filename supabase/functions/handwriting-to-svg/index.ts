@@ -45,6 +45,7 @@ interface ResponsePayload {
   id: string;
   storagePathSvg: string;
   broadcasted: boolean;
+  seq: number;
 }
 
 // ============================================================================
@@ -214,6 +215,15 @@ function createEmptySVG(width: number, height: number): string {
 </svg>`;
 }
 
+function normalizeSeq(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
 // ============================================================================
 // Main Handler
 // ============================================================================
@@ -284,11 +294,35 @@ serve(async (req: Request) => {
         .from(STORAGE_BUCKET)
         .getPublicUrl(storagePath);
 
+      // 동일 idempotencyKey로 이미 기록된 strokes 행을 찾아 seq를 함께 반환
+      const { data: existingStrokeRows, error: seqError } = await supabase
+        .from("strokes")
+        .select("seq")
+        // JSONB ->> 연산자 기반 조회 (metadata.idempotencyKey)
+        .eq("metadata->>idempotencyKey", idempotencyKey);
+
+      if (seqError) {
+        console.error("[HandwritingToSVG] Idempotent seq lookup failed:", seqError);
+        return new Response(
+          JSON.stringify({ error: `Idempotent seq lookup failed: ${seqError.message}` }),
+          { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+        );
+      }
+
+      const seq = normalizeSeq(existingStrokeRows?.[0]?.seq);
+      if (seq === null) {
+        return new Response(
+          JSON.stringify({ error: "Idempotent request found file but strokes row (seq) missing" }),
+          { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+        );
+      }
+
       return new Response(
         JSON.stringify({
           id: idempotencyKey,
           storagePathSvg: urlData.publicUrl,
           broadcasted: false, // 이미 브로드캐스트됨
+          seq,
         }),
         {
           status: 200,
@@ -327,38 +361,9 @@ serve(async (req: Request) => {
 
     const publicUrl = urlData.publicUrl;
 
-    // 8. Realtime Broadcast
-    const channelName = `${REALTIME_CHANNEL_PREFIX}:${sessionId}`;
-    const channel = supabase.channel(channelName);
-
-    let broadcasted = false;
-
-    try {
-      await channel.subscribe();
-
-      await channel.send({
-        type: "broadcast",
-        event: "new_handwriting",
-        payload: {
-          id: idempotencyKey,
-          storagePathSvg: publicUrl,
-          createdAt: meta.createdAt,
-          clientId,
-        },
-      });
-
-      broadcasted = true;
-      console.log(`[HandwritingToSVG] Broadcasted to channel: ${channelName}`);
-    } catch (broadcastError) {
-      console.error("[HandwritingToSVG] Broadcast error:", broadcastError);
-      // 브로드캐스트 실패해도 업로드는 성공으로 처리
-    } finally {
-      await supabase.removeChannel(channel);
-    }
-
-    // 9. DB strokes 테이블에 기록 (Realtime 구독 + 대시보드 조회용)
+    // 8. DB strokes 테이블에 기록 (Realtime 구독 + 대시보드 조회용)
     const pointCount = strokes.reduce((sum, s) => sum + s.length, 0);
-    const { error: insertError } = await supabase
+    const { data: insertedRow, error: insertError } = await supabase
       .from("strokes")
       .insert({
         file_url: publicUrl,
@@ -373,13 +378,53 @@ serve(async (req: Request) => {
           height: canvas.height,
           createdAt: meta.createdAt,
         },
-      });
+      })
+      .select("seq")
+      .single();
 
     if (insertError) {
-      console.error("[HandwritingToSVG] DB insert failed (non-fatal):", insertError);
-      // Storage + Broadcast는 성공했으므로 응답은 계속 반환
-    } else {
-      console.log("[HandwritingToSVG] Inserted into strokes table");
+      console.error("[HandwritingToSVG] DB insert failed:", insertError);
+      return new Response(
+        JSON.stringify({ error: `DB insert failed: ${insertError.message}` }),
+        { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      );
+    }
+
+    const seq = normalizeSeq(insertedRow?.seq);
+    if (seq === null) {
+      return new Response(
+        JSON.stringify({ error: "DB insert returned no seq" }),
+        { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      );
+    }
+
+    // 9. Realtime Broadcast
+    const channelName = `${REALTIME_CHANNEL_PREFIX}:${sessionId}`;
+    const channel = supabase.channel(channelName);
+
+    let broadcasted = false;
+    try {
+      await channel.subscribe();
+
+      await channel.send({
+        type: "broadcast",
+        event: "new_handwriting",
+        payload: {
+          id: idempotencyKey,
+          seq,
+          storagePathSvg: publicUrl,
+          createdAt: meta.createdAt,
+          clientId,
+        },
+      });
+
+      broadcasted = true;
+      console.log(`[HandwritingToSVG] Broadcasted to channel: ${channelName}`);
+    } catch (broadcastError) {
+      console.error("[HandwritingToSVG] Broadcast error:", broadcastError);
+      // 브로드캐스트 실패해도 업로드/DB 기록은 성공으로 처리
+    } finally {
+      await supabase.removeChannel(channel);
     }
 
     // 10. 응답
@@ -387,6 +432,7 @@ serve(async (req: Request) => {
       id: idempotencyKey,
       storagePathSvg: publicUrl,
       broadcasted,
+      seq,
     };
 
     console.log(`[HandwritingToSVG] Success: ${storagePath}`);
