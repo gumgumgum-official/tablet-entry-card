@@ -412,4 +412,4 @@ curl -X POST http://localhost:3000/api/monitors/monitor-1/complete
 
 ---
 
-**마지막 업데이트**: 2025-01-01
+**마지막 업데이트**: 2026-03-28 (구현 정본: `server.js`, `src/managers/MonitorManager.js`, `QueueManager.js`)

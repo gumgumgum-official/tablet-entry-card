@@ -30,17 +30,8 @@ export interface WorrySectionHandle {
 }
 
 const STROKE_WIDTH = 6;
-const ALLOW_NON_PEN_IN_DEV =
-  // Vite DEV (브라우저)
-  (typeof import.meta !== "undefined" &&
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (import.meta as any).env &&
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (import.meta as any).env.DEV) ||
-  // Node 환경 (테스트 등)
-  (typeof process !== "undefined" &&
-    typeof process.env !== "undefined" &&
-    process.env.NODE_ENV !== "production");
+/** `npm run dev`(Vite)일 때 true — 마우스·애플펜슬 등 모두 허용. 빌드/배포에서는 펜만. */
+const IS_DEV = import.meta.env.DEV;
 
 const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
   ({ value, onChange, sessionId }, ref) => {
@@ -113,9 +104,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
     const startDrawing = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
-        const isPen = e.pointerType === "pen";
-        const isAllowedMouse = ALLOW_NON_PEN_IN_DEV && e.pointerType === "mouse";
-        if (!isPen && !isAllowedMouse) return;
+        if (!IS_DEV && e.pointerType !== "pen") return;
         e.preventDefault();
         setIsDrawing(true);
         setHasContent(true);

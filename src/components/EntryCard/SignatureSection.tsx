@@ -11,15 +11,7 @@ interface SignatureSectionProps {
 // 위치 오프셋 (WorrySection 캔버스 높이 증가에 따른 조정)
 const TOP_OFFSET = 80;
 const STROKE_WIDTH = 2.5;
-const ALLOW_NON_PEN_IN_DEV =
-  (typeof import.meta !== "undefined" &&
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (import.meta as any).env &&
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (import.meta as any).env.DEV) ||
-  (typeof process !== "undefined" &&
-    typeof process.env !== "undefined" &&
-    process.env.NODE_ENV !== "production");
+const IS_DEV = import.meta.env.DEV;
 
 const SignatureSection = ({
   signature,
@@ -90,9 +82,7 @@ const SignatureSection = ({
   // 그리기 시작
   const startDrawing = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
-      const isPen = e.pointerType === "pen";
-      const isAllowedMouse = ALLOW_NON_PEN_IN_DEV && e.pointerType === "mouse";
-      if (!isPen && !isAllowedMouse) return;
+      if (!IS_DEV && e.pointerType !== "pen") return;
       e.preventDefault();
       setIsDrawing(true);
       setHasContent(true);
