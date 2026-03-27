@@ -301,11 +301,11 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
           }
 
           // submit 성공 후: gum_server에 monitor 배정 요청
-          if (typeof seq === "number" && storagePathSvg) {
+          if (typeof seq === "number") {
             const assignment = await requestMonitorAssignment({
               worryId: String(seq),
-              svgUrl: storagePathSvg,
-              sessionId,
+              svgUrl: storagePathSvg ?? null,
+              sessionId: sessionId ?? null,
               clientId: getClientId(),
             });
             if (!assignment.ok) {
@@ -313,18 +313,26 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
                 description: "네트워크 상태 또는 gum_server 설정을 확인해주세요.",
               });
             } else if (assignment.assigned) {
-              const where =
-                assignment.position === "left"
-                  ? "왼쪽"
-                  : assignment.position === "right"
-                    ? "오른쪽"
-                    : "지정된";
-              toast.success("모니터 배정 완료", {
-                description: `${where} 모니터로 가세요.`,
+              const fallbackGuide =
+                assignment.monitorNumber === 1
+                  ? "👈 왼쪽 껌딱지월드로 가세요"
+                  : assignment.monitorNumber === 2
+                    ? "👉 오른쪽 껌딱지월드로 가세요"
+                    : assignment.position === "left" || assignment.position === "right"
+                      ? `${assignment.position === "left" ? "왼쪽" : "오른쪽"} 모니터로 가세요.`
+                      : "안내된 모니터로 이동해 주세요.";
+              toast.success("모니터 예약 완료", {
+                description: assignment.serverMessage ?? fallbackGuide,
+              });
+            } else if (assignment.queueLeftWithoutAssignment) {
+              toast.message("대기 안내", {
+                description:
+                  "대기 순번이 종료되었습니다. 현장 안내를 기다려 주세요.",
               });
             } else if (assignment.state === "pending") {
               const pendingText =
-                typeof assignment.queuePosition === "number"
+                typeof assignment.queuePosition === "number" &&
+                assignment.queuePosition > 0
                   ? `${assignment.queuePosition}번째로 대기 중입니다.`
                   : `${seq}번째 고민이 대기 중입니다.`;
               toast.message("배정 대기 중", {

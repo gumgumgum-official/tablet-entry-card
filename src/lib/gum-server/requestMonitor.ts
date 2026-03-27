@@ -5,10 +5,11 @@ import {
   GUM_SERVER_URL,
 } from "./config";
 
+/** 요구사항: worryId, svgUrl·sessionId null 허용, clientId는 대기열 재조회용 */
 export type RequestMonitorAssignmentPayload = {
   worryId: string;
-  svgUrl: string;
-  sessionId?: string;
+  svgUrl?: string | null;
+  sessionId?: string | null;
   clientId?: string;
 };
 
@@ -27,28 +28,31 @@ type QueuePositionResponse = {
   queuePosition?: number;
 };
 
-type ServerStatusResponse = {
-  monitors?: Record<
-    string,
-    {
-      status?: "idle" | "busy" | string;
-      clientId?: string | null;
-    }
-  >;
-};
-
 export type RequestMonitorResult = {
   ok: boolean;
   assigned: boolean;
   state: "pending" | "assigned" | "expired" | "failed";
   monitorId?: string;
   monitorNumber?: number;
+  /** 서버 `message` 또는 monitorNumber 기반 안내용 */
   position?: string;
+  /** 서버 응답 `message` (왼쪽/오른쪽 이모지 문구 등) */
+  serverMessage?: string;
   queuePosition?: number;
+  /**
+   * 대기열 폴링 중 queuePosition이 0이 됨(대기 종료·만료 등).
+   * 태블릿에는 푸시 없음 — 현장 안내 UX용 (요구사항.md)
+   */
+  queueLeftWithoutAssignment?: boolean;
 };
 
+/** 요구사항: base URL 끝 `/` 제거 */
+function gumServerBase(): string {
+  return (GUM_SERVER_URL || "").replace(/\/$/, "");
+}
+
 function buildUrl(path: string): string {
-  return `${GUM_SERVER_URL}${path}`;
+  return `${gumServerBase()}${path}`;
 }
 
 function withTimeoutSignal(ms: number): AbortSignal {
@@ -64,6 +68,12 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function positionFromMonitorNumber(n?: number): "left" | "right" | undefined {
+  if (n === 1) return "left";
+  if (n === 2) return "right";
+  return undefined;
+}
+
 function normalizeAssignedState(
   response: RequestMonitorResponse | null
 ): RequestMonitorResult {
@@ -72,14 +82,17 @@ function normalizeAssignedState(
   }
 
   const state = response.state;
+  const pos = response.position ?? positionFromMonitorNumber(response.monitorNumber);
+
   if (state === "assigned" || response.assigned === true) {
     return {
       ok: true,
       assigned: true,
       state: "assigned",
       monitorId: response.monitorId,
-      position: response.position,
       monitorNumber: response.monitorNumber,
+      position: pos,
+      serverMessage: response.message,
       queuePosition: response.queuePosition,
     };
   }
@@ -89,8 +102,9 @@ function normalizeAssignedState(
       assigned: false,
       state: "expired",
       monitorId: response.monitorId,
-      position: response.position,
       monitorNumber: response.monitorNumber,
+      position: pos,
+      serverMessage: response.message,
       queuePosition: response.queuePosition,
     };
   }
@@ -99,8 +113,9 @@ function normalizeAssignedState(
     assigned: false,
     state: "pending",
     monitorId: response.monitorId,
-    position: response.position,
     monitorNumber: response.monitorNumber,
+    position: pos,
+    serverMessage: response.message,
     queuePosition: response.queuePosition,
   };
 }
@@ -117,34 +132,9 @@ async function getQueuePosition(clientId: string): Promise<QueuePositionResponse
   return (await response.json()) as QueuePositionResponse;
 }
 
-async function getServerStatus(): Promise<ServerStatusResponse | null> {
-  const response = await fetch(buildUrl("/status"), {
-    method: "GET",
-    signal: withTimeoutSignal(GUM_SERVER_REQUEST_TIMEOUT_MS),
-  });
-  if (!response.ok) return null;
-  return (await response.json()) as ServerStatusResponse;
-}
-
-function findAssignedMonitorByClientId(
-  status: ServerStatusResponse | null,
-  clientId: string
-): { monitorId?: string; monitorNumber?: number; position?: "left" | "right" } | null {
-  if (!status?.monitors) return null;
-  for (const [monitorId, monitor] of Object.entries(status.monitors)) {
-    if (monitor?.clientId === clientId) {
-      const monitorNumberMatch = monitorId.match(/\d+/);
-      const monitorNumber = monitorNumberMatch ? Number(monitorNumberMatch[0]) : undefined;
-      const position =
-        monitorNumber === 1 ? "left" : monitorNumber === 2 ? "right" : undefined;
-      return { monitorId, monitorNumber, position };
-    }
-  }
-  return null;
-}
-
 /**
- * gum_server에 REST로 모니터 배정 요청 후, 배정 전이면 폴링
+ * 태블릿: `POST /api/request-monitor` + (대기 시) `GET /api/queue/position` 만 사용.
+ * `GET /status`, 모니터용 `/current`·`/start`·`/complete` 는 호출하지 않음 (요구사항.md).
  */
 export async function requestMonitorAssignment(
   payload: RequestMonitorAssignmentPayload
@@ -156,17 +146,26 @@ export async function requestMonitorAssignment(
     return { ok: false, assigned: false, state: "failed" };
   }
 
+  const body: Record<string, unknown> = {
+    worryId: payload.worryId,
+    svgUrl: payload.svgUrl ?? null,
+    sessionId: payload.sessionId ?? null,
+  };
+  if (payload.clientId !== undefined && payload.clientId !== "") {
+    body.clientId = payload.clientId;
+  }
+
   try {
     const postResponse = await fetch(buildUrl("/api/request-monitor"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
       signal: withTimeoutSignal(GUM_SERVER_REQUEST_TIMEOUT_MS),
     });
 
     if (!postResponse.ok) {
-      const body = await postResponse.text().catch(() => "");
-      console.warn("[gum_server] POST /api/request-monitor 실패:", postResponse.status, body);
+      const text = await postResponse.text().catch(() => "");
+      console.warn("[gum_server] POST /api/request-monitor 실패:", postResponse.status, text);
       return { ok: false, assigned: false, state: "failed" };
     }
 
@@ -178,44 +177,50 @@ export async function requestMonitorAssignment(
 
     const pollingClientId = initial.clientId || payload.clientId;
     if (!pollingClientId) {
-      // API.md 기준으론 assigned:false 응답에 clientId가 포함되지만, 방어적으로 처리
-      return { ok: true, assigned: false, state: "pending", queuePosition: initial.queuePosition };
+      return {
+        ok: true,
+        assigned: false,
+        state: "pending",
+        queuePosition: initial.queuePosition,
+        serverMessage: initial.message,
+      };
     }
 
-    // pending이면 폴링
+    let lastQueuePosition =
+      typeof initial.queuePosition === "number" ? initial.queuePosition : 0;
+
     const startedAt = Date.now();
     while (Date.now() - startedAt < GUM_SERVER_POLL_MAX_WAIT_MS) {
       await sleep(GUM_SERVER_POLL_INTERVAL_MS);
 
       try {
         const queue = await getQueuePosition(pollingClientId);
-        if (typeof queue?.queuePosition === "number" && queue.queuePosition > 0) {
+        if (!queue || typeof queue.queuePosition !== "number") {
           continue;
         }
-
-        // queuePosition이 0이면 대기열에서 빠진 상태: /status에서 실제 배정 monitor 확인
-        const status = await getServerStatus();
-        const assigned = findAssignedMonitorByClientId(status, pollingClientId);
-        if (assigned?.monitorId) {
+        lastQueuePosition = queue.queuePosition;
+        if (queue.queuePosition === 0) {
           return {
             ok: true,
-            assigned: true,
-            state: "assigned",
-            monitorId: assigned.monitorId,
-            monitorNumber: assigned.monitorNumber,
-            position: assigned.position,
+            assigned: false,
+            state: "pending",
             queuePosition: 0,
+            queueLeftWithoutAssignment: true,
           };
         }
       } catch (error) {
-        console.warn("[gum_server] polling 오류:", error);
+        console.warn("[gum_server] queue/position 폴링 오류:", error);
       }
     }
 
-    return { ok: true, assigned: false, state: "pending" };
+    return {
+      ok: true,
+      assigned: false,
+      state: "pending",
+      queuePosition: lastQueuePosition,
+    };
   } catch (error) {
     console.warn("[gum_server] request-monitor REST 호출 실패:", error);
     return { ok: false, assigned: false, state: "failed" };
   }
 }
-
