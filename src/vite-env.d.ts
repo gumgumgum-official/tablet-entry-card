@@ -27,6 +27,12 @@ interface ImportMetaEnv {
 
   /** monitor status polling 최대 대기(ms) */
   readonly VITE_GUM_SERVER_POLL_MAX_WAIT_MS?: string;
+
+  /**
+   * 프로덕션에서 `pointerType === "touch"` 도 필기 시작으로 허용 (기본: 미설정 시 비허용).
+   * Vercel 등에 `true` 또는 `1` 로 설정. 애플펜슬이 touch로 보고되는 환경용.
+   */
+  readonly VITE_ALLOW_TOUCH_AS_PEN?: string;
 }
 
 interface ImportMeta {
