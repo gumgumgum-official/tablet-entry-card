@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from "react";
+import { isCanvasPointerStartAllowed } from "@/lib/canvasPointer";
 
 interface NameFieldProps {
   value: string;
@@ -6,7 +7,6 @@ interface NameFieldProps {
 }
 
 const STROKE_WIDTH = 2;
-const IS_DEV = import.meta.env.DEV;
 
 const NameField = ({ value, onChange }: NameFieldProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -61,7 +61,7 @@ const NameField = ({ value, onChange }: NameFieldProps) => {
 
   const startDrawing = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (!IS_DEV && e.pointerType !== "pen") return;
+      if (!isCanvasPointerStartAllowed(e.pointerType)) return;
       e.preventDefault();
       setIsDrawing(true);
       setHasContent(true);

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { format } from "date-fns";
+import { isCanvasPointerStartAllowed } from "@/lib/canvasPointer";
 
 interface SignatureSectionProps {
   signature: string;
@@ -11,7 +12,6 @@ interface SignatureSectionProps {
 // 위치 오프셋 (WorrySection 캔버스 높이 증가에 따른 조정)
 const TOP_OFFSET = 80;
 const STROKE_WIDTH = 2.5;
-const IS_DEV = import.meta.env.DEV;
 
 const SignatureSection = ({
   signature,
@@ -82,7 +82,7 @@ const SignatureSection = ({
   // 그리기 시작
   const startDrawing = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (!IS_DEV && e.pointerType !== "pen") return;
+      if (!isCanvasPointerStartAllowed(e.pointerType)) return;
       e.preventDefault();
       setIsDrawing(true);
       setHasContent(true);

@@ -8,6 +8,7 @@ import {
   getClientId,
 } from "@/lib/submit";
 import { requestMonitorAssignment } from "@/lib/gum-server/requestMonitor";
+import { isCanvasPointerStartAllowed } from "@/lib/canvasPointer";
 
 interface WorrySectionProps {
   value: string;
@@ -30,8 +31,6 @@ export interface WorrySectionHandle {
 }
 
 const STROKE_WIDTH = 6;
-/** `npm run dev`(Vite)일 때 true — 마우스·애플펜슬 등 모두 허용. 빌드/배포에서는 펜만. */
-const IS_DEV = import.meta.env.DEV;
 
 const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
   ({ value, onChange, sessionId }, ref) => {
@@ -104,7 +103,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
     const startDrawing = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
-        if (!IS_DEV && e.pointerType !== "pen") return;
+        if (!isCanvasPointerStartAllowed(e.pointerType)) return;
         e.preventDefault();
         setIsDrawing(true);
         setHasContent(true);
@@ -167,6 +166,9 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
         if (!isDrawing) return;
 
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext("2d");
+
         setIsDrawing(false);
         lastPointRef.current = null;
 
@@ -200,7 +202,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
             strokesRef.current = filteredStrokes;
 
-            if (canvas) {
+            if (canvas && ctx) {
               ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
               ctx.save();
@@ -227,7 +229,6 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
           currentStrokeRef.current = [];
         }
 
-        const canvas = canvasRef.current;
         if (canvas) {
           const dataUrl = canvas.toDataURL("image/png");
           onChange(dataUrl);
