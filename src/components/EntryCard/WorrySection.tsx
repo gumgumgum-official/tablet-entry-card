@@ -278,6 +278,13 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         if (result.success) {
           const seq = result.data?.seq;
           const storagePathSvg = result.data?.storagePathSvg;
+          /** Edge에 seq 컬럼이 아직 없으면 id로 대체 — gum_server worryId는 문자열이면 됨 */
+          const worryIdForGum =
+            typeof seq === "number"
+              ? String(seq)
+              : result.data?.id
+                ? String(result.data.id)
+                : "";
 
           setSubmitStatus('success');
           if (typeof seq === "number") {
@@ -290,10 +297,10 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
             });
           }
 
-          // submit 성공 후: gum_server에 monitor 배정 요청
-          if (typeof seq === "number") {
+          // submit 성공 후: gum_server에 monitor 배정 요청 (seq 없어도 id 있으면 호출)
+          if (worryIdForGum) {
             const assignment = await requestMonitorAssignment({
-              worryId: String(seq),
+              worryId: worryIdForGum,
               svgUrl: storagePathSvg ?? null,
               sessionId: sessionId ?? null,
               clientId: getClientId(),
@@ -324,7 +331,9 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
                 typeof assignment.queuePosition === "number" &&
                 assignment.queuePosition > 0
                   ? `${assignment.queuePosition}번째로 대기 중입니다.`
-                  : `${seq}번째 고민이 대기 중입니다.`;
+                  : typeof seq === "number"
+                    ? `${seq}번째 고민이 대기 중입니다.`
+                    : "고민이 대기 중입니다.";
               toast.message("배정 대기 중", {
                 description: pendingText,
               });
