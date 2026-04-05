@@ -38,6 +38,12 @@ interface ImportMetaEnv {
    * 프로덕션에서 `pointerType === "mouse"` 도 필기 시작으로 허용 (기본: 미설정 시 비허용).
    */
   readonly VITE_ALLOW_MOUSE?: string;
+
+  /** 프로덕션에서 모든 pointerType 허용 (키오스크·환경 이슈 우회; 손가락도 포함될 수 있음) */
+  readonly VITE_ALLOW_ALL_POINTERS?: string;
+
+  /** 프로덕션에서 pointerdown이 거절될 때 console.warn으로 pointerType·ENV 출력 */
+  readonly VITE_DEBUG_POINTER?: string;
 }
 
 interface ImportMeta {
