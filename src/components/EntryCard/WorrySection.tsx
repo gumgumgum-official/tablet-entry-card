@@ -36,7 +36,7 @@ const STROKE_WIDTH = 6;
 const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
   ({ value, onChange, sessionId }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [isDrawing, setIsDrawing] = useState(false);
+    const isDrawingRef = useRef(false);
     const [hasContent, setHasContent] = useState(false);
     const lastPointRef = useRef<{ x: number; y: number } | null>(null);
     const [mode, setMode] = useState<"draw" | "erase">("draw");
@@ -70,6 +70,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
       canvas.style.width = `${canvasWidth}px`;
       canvas.style.height = `${canvasHeight}px`;
       ctx.scale(dpr, dpr);
+      ctx.imageSmoothingEnabled = true;
 
       // 기존 이미지 데이터 복원
       if (value) {
@@ -83,7 +84,9 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
     }, []);
 
     const getPointFromEvent = useCallback(
-      (e: React.PointerEvent<HTMLCanvasElement>): SubmitPoint | null => {
+      (
+        e: Pick<PointerEvent, "clientX" | "clientY" | "pressure" | "timeStamp">
+      ): SubmitPoint | null => {
         const canvas = canvasRef.current;
         if (!canvas) return null;
 
@@ -95,9 +98,21 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         return {
           x,
           y,
-          t: Date.now(),
-          p: pressure
+          t: e.timeStamp,
+          p: pressure,
         };
+      },
+      []
+    );
+
+    const getEventSamples = useCallback(
+      (e: React.PointerEvent<HTMLCanvasElement>): PointerEvent[] => {
+        const nativeEvent = e.nativeEvent;
+        if ("getCoalescedEvents" in nativeEvent) {
+          const coalesced = nativeEvent.getCoalescedEvents();
+          if (coalesced.length > 0) return coalesced;
+        }
+        return [nativeEvent];
       },
       []
     );
@@ -106,71 +121,74 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
         if (!isCanvasPointerStartAllowed(e.pointerType)) return;
         e.preventDefault();
-        setIsDrawing(true);
+        isDrawingRef.current = true;
         setHasContent(true);
 
         const point = getPointFromEvent(e);
         if (point) {
           lastPointRef.current = { x: point.x, y: point.y };
-          if (mode === "draw") {
-            currentStrokeRef.current = [point];
-          }
+          currentStrokeRef.current = [point];
         }
 
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
       },
-      [getPointFromEvent, mode]
+      [getPointFromEvent]
     );
 
     const draw = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
-        if (!isDrawing) return;
+        if (!isDrawingRef.current) return;
 
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext("2d");
         if (!canvas || !ctx || !lastPointRef.current) return;
 
-        const point = getPointFromEvent(e);
-        if (!point) return;
-
         const ctxMode = mode === "erase" ? "destination-out" : "source-over";
         ctx.save();
         ctx.globalCompositeOperation = ctxMode;
-
-        // 이전 커밋과 비슷한 굵기 프로파일 유지
-        const strokeWidth =
-          mode === "erase"
-            ? STROKE_WIDTH * 2
-            : 5 + (point.p ?? 0.5) * 8;
-
-        ctx.beginPath();
-        ctx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
-        ctx.lineTo(point.x, point.y);
         ctx.strokeStyle = "hsl(0, 0%, 18%)";
-        ctx.lineWidth = strokeWidth;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
-        ctx.stroke();
 
-        ctx.restore();
+        for (const sample of getEventSamples(e)) {
+          const point = getPointFromEvent(sample);
+          if (!point || !lastPointRef.current) continue;
 
-        lastPointRef.current = { x: point.x, y: point.y };
+          // 이전 커밋과 비슷한 굵기 프로파일 유지
+          const strokeWidth =
+            mode === "erase"
+              ? STROKE_WIDTH * 2
+              : 5 + (point.p ?? 0.5) * 8;
+          ctx.lineWidth = strokeWidth;
 
-        if (mode === "draw") {
-          currentStrokeRef.current.push(point);
+          const from = lastPointRef.current;
+          const midX = (from.x + point.x) / 2;
+          const midY = (from.y + point.y) / 2;
+
+          ctx.beginPath();
+          ctx.moveTo(from.x, from.y);
+          ctx.quadraticCurveTo(from.x, from.y, midX, midY);
+          ctx.stroke();
+
+          lastPointRef.current = { x: point.x, y: point.y };
+
+          if (mode === "draw" || mode === "erase") {
+            currentStrokeRef.current.push(point);
+          }
         }
+        ctx.restore();
       },
-      [isDrawing, getPointFromEvent, mode]
+      [getEventSamples, getPointFromEvent, mode]
     );
 
     const stopDrawing = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
-        if (!isDrawing) return;
+        if (!isDrawingRef.current) return;
 
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext("2d");
 
-        setIsDrawing(false);
+        isDrawingRef.current = false;
         lastPointRef.current = null;
 
         if (mode === "draw") {
@@ -237,7 +255,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
         (e.target as HTMLElement).releasePointerCapture(e.pointerId);
       },
-      [isDrawing, mode, onChange]
+      [mode, onChange]
     );
 
     const clearCanvas = useCallback(() => {
