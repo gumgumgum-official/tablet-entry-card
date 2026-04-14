@@ -8,6 +8,8 @@ import {
 /** 요구사항: worryId, svgUrl·sessionId null 허용, clientId는 대기열 재조회용 */
 export type RequestMonitorAssignmentPayload = {
   worryId: string;
+  /** 모니터 「N번째」문구용 — `worryId`가 긴 Edge id일 때 서버가 내려줌 */
+  displaySeq?: number;
   svgUrl?: string | null;
   sessionId?: string | null;
   clientId?: string;
@@ -151,6 +153,13 @@ export async function requestMonitorAssignment(
     svgUrl: payload.svgUrl ?? null,
     sessionId: payload.sessionId ?? null,
   };
+  if (
+    typeof payload.displaySeq === "number" &&
+    Number.isInteger(payload.displaySeq) &&
+    payload.displaySeq >= 1
+  ) {
+    body.displaySeq = payload.displaySeq;
+  }
   if (payload.clientId !== undefined && payload.clientId !== "") {
     body.clientId = payload.clientId;
   }

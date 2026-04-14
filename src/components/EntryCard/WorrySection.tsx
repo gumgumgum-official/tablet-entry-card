@@ -8,6 +8,7 @@ import {
   getClientId,
 } from "@/lib/submit";
 import { requestMonitorAssignment } from "@/lib/gum-server/requestMonitor";
+import { coerceDisplaySeq } from "@/lib/gum-server/displaySeq";
 import { isCanvasPointerStartAllowed } from "@/lib/canvasPointer";
 
 interface WorrySectionProps {
@@ -278,17 +279,19 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         if (result.success) {
           const seq = result.data?.seq;
           const storagePathSvg = result.data?.storagePathSvg;
-          /** Edge에 seq 컬럼이 아직 없으면 id로 대체 — gum_server worryId는 문자열이면 됨 */
+          const displaySeq = coerceDisplaySeq(seq);
+
+          /** Edge에 seq 없으면 id로 worryId — 모니터 문구용 displaySeq는 별도 필드로만 전달 */
           const worryIdForGum =
-            typeof seq === "number"
-              ? String(seq)
+            displaySeq != null
+              ? String(displaySeq)
               : result.data?.id
                 ? String(result.data.id)
                 : "";
 
           setSubmitStatus('success');
-          if (typeof seq === "number") {
-            toast.success(`${seq}번째 고민이 추가되었습니다`, {
+          if (displaySeq != null) {
+            toast.success(`${displaySeq}번째 고민이 추가되었습니다`, {
               description: "모니터에 배정 요청을 보냈습니다.",
             });
           } else {
@@ -301,6 +304,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
           if (worryIdForGum) {
             const assignment = await requestMonitorAssignment({
               worryId: worryIdForGum,
+              ...(displaySeq != null ? { displaySeq } : {}),
               svgUrl: storagePathSvg ?? null,
               sessionId: sessionId ?? null,
               clientId: getClientId(),
@@ -331,8 +335,8 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
                 typeof assignment.queuePosition === "number" &&
                 assignment.queuePosition > 0
                   ? `${assignment.queuePosition}번째로 대기 중입니다.`
-                  : typeof seq === "number"
-                    ? `${seq}번째 고민이 대기 중입니다.`
+                  : displaySeq != null
+                    ? `${displaySeq}번째 고민이 대기 중입니다.`
                     : "고민이 대기 중입니다.";
               toast.message("배정 대기 중", {
                 description: pendingText,

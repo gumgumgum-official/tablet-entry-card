@@ -40,8 +40,8 @@ export interface SubmitResponse {
   id: string;
   storagePathSvg: string;
   broadcasted: boolean;
-  /** DB·Edge 배포 후 포함. 없으면 태블릿은 `id`를 worryId로 gum_server에 전달 */
-  seq?: number;
+  /** DB·Edge 배포 후 포함. 숫자 또는 문자열 가능 — `coerceDisplaySeq`로 정수화 */
+  seq?: number | string;
 }
 
 /** 전송 결과 */
