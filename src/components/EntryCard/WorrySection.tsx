@@ -30,16 +30,20 @@ export interface WorrySectionHandle {
 }
 
 const STROKE_WIDTH = 6;
+const STROKE_COLOR = "#2E2E2E";
 
 const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
   ({ sessionId }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
     const isDrawingRef = useRef(false);
     const [hasContent, setHasContent] = useState(false);
     const hasContentRef = useRef(false);
     const lastPointRef = useRef<{ x: number; y: number } | null>(null);
     const canvasRectRef = useRef<DOMRect | null>(null);
     const [mode, setMode] = useState<"draw" | "erase">("draw");
+    const modeRef = useRef<"draw" | "erase">("draw");
+    const isSubmittingRef = useRef(false);
 
     // Strokes 수집
     const strokesRef = useRef<SubmitPoint[][]>([]);
@@ -48,6 +52,9 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
     // 전송 상태
     const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('idle');
     const isSubmitting = submitStatus === 'submitting' || submitStatus === 'retrying';
+
+    useEffect(() => { modeRef.current = mode; }, [mode]);
+    useEffect(() => { isSubmittingRef.current = isSubmitting; }, [isSubmitting]);
 
     // 캔버스 크기
     const canvasWidth = 720;
@@ -61,8 +68,9 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext("2d", { willReadFrequently: false });
       if (!ctx) return;
+      ctxRef.current = ctx;
 
       const dpr = window.devicePixelRatio || 1;
       canvas.width = canvasWidth * dpr;
@@ -70,47 +78,26 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
       canvas.style.width = `${canvasWidth}px`;
       canvas.style.height = `${canvasHeight}px`;
       ctx.scale(dpr, dpr);
-      ctx.imageSmoothingEnabled = true;
 
     }, []);
 
-    const getPointFromEvent = useCallback(
-      (
-        e: Pick<PointerEvent, "clientX" | "clientY" | "pressure" | "timeStamp">
-      ): SubmitPoint | null => {
-        const rect = canvasRectRef.current;
-        if (!rect) return null;
+    // --- 네이티브 포인터 이벤트 리스너 (React 합성 이벤트 우회) ---
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-        const x = (e.clientX - rect.left) * (canvasWidth / rect.width);
-        const y = (e.clientY - rect.top) * (canvasHeight / rect.height);
-        const pressure = e.pressure || 0.5;
+      const toPoint = (e: PointerEvent, rect: DOMRect): SubmitPoint => ({
+        x: (e.clientX - rect.left) * (canvasWidth / rect.width),
+        y: (e.clientY - rect.top) * (canvasHeight / rect.height),
+        t: e.timeStamp,
+        p: e.pressure || 0.5,
+      });
 
-        return {
-          x,
-          y,
-          t: e.timeStamp,
-          p: pressure,
-        };
-      },
-      []
-    );
-
-    const getEventSamples = useCallback(
-      (e: React.PointerEvent<HTMLCanvasElement>): PointerEvent[] => {
-        const nativeEvent = e.nativeEvent;
-        if ("getCoalescedEvents" in nativeEvent) {
-          const coalesced = nativeEvent.getCoalescedEvents();
-          if (coalesced.length > 0) return coalesced;
-        }
-        return [nativeEvent];
-      },
-      []
-    );
-
-    const startDrawing = useCallback(
-      (e: React.PointerEvent<HTMLCanvasElement>) => {
+      const handlePointerDown = (e: PointerEvent) => {
+        if (isSubmittingRef.current) return;
         if (!isCanvasPointerStartAllowed(e.pointerType)) return;
         e.preventDefault();
+
         isDrawingRef.current = true;
 
         if (!hasContentRef.current) {
@@ -118,112 +105,89 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
           setHasContent(true);
         }
 
-        const canvas = canvasRef.current;
-        if (canvas) canvasRectRef.current = canvas.getBoundingClientRect();
+        canvasRectRef.current = canvas.getBoundingClientRect();
+        const rect = canvasRectRef.current;
+        const pt = toPoint(e, rect);
 
-        const point = getPointFromEvent(e);
-        if (point) {
-          lastPointRef.current = { x: point.x, y: point.y };
-          currentStrokeRef.current = [point];
-        }
+        lastPointRef.current = { x: pt.x, y: pt.y };
+        currentStrokeRef.current = [pt];
 
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-      },
-      [getPointFromEvent]
-    );
+        canvas.setPointerCapture(e.pointerId);
+      };
 
-    const draw = useCallback(
-      (e: React.PointerEvent<HTMLCanvasElement>) => {
+      const handlePointerMove = (e: PointerEvent) => {
         if (!isDrawingRef.current) return;
 
-        const canvas = canvasRef.current;
-        const ctx = canvas?.getContext("2d");
-        if (!canvas || !ctx || !lastPointRef.current) return;
+        const ctx = ctxRef.current;
+        const rect = canvasRectRef.current;
+        if (!ctx || !rect || !lastPointRef.current) return;
 
-        const ctxMode = mode === "erase" ? "destination-out" : "source-over";
-        ctx.save();
-        ctx.globalCompositeOperation = ctxMode;
-        ctx.strokeStyle = "hsl(0, 0%, 18%)";
+        const curMode = modeRef.current;
+        ctx.globalCompositeOperation = curMode === "erase" ? "destination-out" : "source-over";
+        ctx.strokeStyle = STROKE_COLOR;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
 
-        for (const sample of getEventSamples(e)) {
-          const point = getPointFromEvent(sample);
-          if (!point || !lastPointRef.current) continue;
+        const samples: PointerEvent[] =
+          "getCoalescedEvents" in e
+            ? (e.getCoalescedEvents().length > 0 ? e.getCoalescedEvents() : [e])
+            : [e];
 
-          // 이전 커밋과 비슷한 굵기 프로파일 유지
-          const strokeWidth =
-            mode === "erase"
+        for (const sample of samples) {
+          const pt = toPoint(sample, rect);
+          if (!lastPointRef.current) break;
+
+          ctx.lineWidth =
+            curMode === "erase"
               ? STROKE_WIDTH * 2
-              : 5 + (point.p ?? 0.5) * 8;
-          ctx.lineWidth = strokeWidth;
+              : 5 + (pt.p ?? 0.5) * 8;
 
           const from = lastPointRef.current;
-          const midX = (from.x + point.x) / 2;
-          const midY = (from.y + point.y) / 2;
+          const midX = (from.x + pt.x) / 2;
+          const midY = (from.y + pt.y) / 2;
 
           ctx.beginPath();
           ctx.moveTo(from.x, from.y);
           ctx.quadraticCurveTo(from.x, from.y, midX, midY);
           ctx.stroke();
 
-          lastPointRef.current = { x: point.x, y: point.y };
-
-          if (mode === "draw" || mode === "erase") {
-            currentStrokeRef.current.push(point);
-          }
+          lastPointRef.current = { x: pt.x, y: pt.y };
+          currentStrokeRef.current.push(pt);
         }
-        ctx.restore();
-      },
-      [getEventSamples, getPointFromEvent, mode]
-    );
+      };
 
-    const stopDrawing = useCallback(
-      (e: React.PointerEvent<HTMLCanvasElement>) => {
+      const handlePointerUp = (e: PointerEvent) => {
         if (!isDrawingRef.current) return;
-
-        const canvas = canvasRef.current;
-        const ctx = canvas?.getContext("2d");
 
         isDrawingRef.current = false;
         lastPointRef.current = null;
 
-        if (mode === "draw") {
+        const curMode = modeRef.current;
+        if (curMode === "draw") {
           if (currentStrokeRef.current.length > 0) {
-            strokesRef.current.push([...currentStrokeRef.current]);
+            strokesRef.current.push(currentStrokeRef.current);
             currentStrokeRef.current = [];
           }
-        } else if (mode === "erase") {
-          // 획 지우개: 지우개 경로에 조금이라도 닿은 stroke 전체 제거
-          const erasePoints = [...currentStrokeRef.current];
+        } else if (curMode === "erase") {
+          const erasePoints = currentStrokeRef.current;
           if (erasePoints.length > 0) {
-            const threshold = STROKE_WIDTH * 2.5;
-            const thresholdSq = threshold * threshold;
+            const thresholdSq = (STROKE_WIDTH * 2.5) ** 2;
+            strokesRef.current = strokesRef.current.filter(
+              (stroke) =>
+                !stroke.some((pt) =>
+                  erasePoints.some((ep) => {
+                    const dx = ep.x - pt.x;
+                    const dy = ep.y - pt.y;
+                    return dx * dx + dy * dy <= thresholdSq;
+                  })
+                )
+            );
 
-            const filteredStrokes: SubmitPoint[][] = [];
-
-            for (const stroke of strokesRef.current) {
-              const hitStroke = stroke.some((pt) =>
-                erasePoints.some((ep) => {
-                  const dx = ep.x - pt.x;
-                  const dy = ep.y - pt.y;
-                  return dx * dx + dy * dy <= thresholdSq;
-                })
-              );
-
-              if (!hitStroke) {
-                filteredStrokes.push(stroke);
-              }
-            }
-
-            strokesRef.current = filteredStrokes;
-
-            if (canvas && ctx) {
+            const ctx = ctxRef.current;
+            if (ctx) {
               ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-
-              ctx.save();
               ctx.globalCompositeOperation = "source-over";
-              ctx.strokeStyle = "hsl(0, 0%, 18%)";
+              ctx.strokeStyle = STROKE_COLOR;
               ctx.lineWidth = STROKE_WIDTH;
               ctx.lineCap = "round";
               ctx.lineJoin = "round";
@@ -237,23 +201,32 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
                 }
                 ctx.stroke();
               }
-
-              ctx.restore();
             }
           }
-
           currentStrokeRef.current = [];
         }
 
-        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-      },
-      [mode]
-    );
+        canvas.releasePointerCapture(e.pointerId);
+      };
+
+      canvas.addEventListener("pointerdown", handlePointerDown, { passive: false });
+      canvas.addEventListener("pointermove", handlePointerMove, { passive: true });
+      canvas.addEventListener("pointerup", handlePointerUp);
+      canvas.addEventListener("pointerleave", handlePointerUp);
+      canvas.addEventListener("pointercancel", handlePointerUp);
+
+      return () => {
+        canvas.removeEventListener("pointerdown", handlePointerDown);
+        canvas.removeEventListener("pointermove", handlePointerMove);
+        canvas.removeEventListener("pointerup", handlePointerUp);
+        canvas.removeEventListener("pointerleave", handlePointerUp);
+        canvas.removeEventListener("pointercancel", handlePointerUp);
+      };
+    }, []);
 
     const clearCanvas = useCallback(() => {
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext("2d");
-      if (!canvas || !ctx) return;
+      const ctx = ctxRef.current;
+      if (!ctx) return;
 
       ctx.clearRect(0, 0, canvasWidth, canvasHeight);
       hasContentRef.current = false;
@@ -419,6 +392,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
             top: `${320 + TOP_OFFSET}px`,
             width: `${canvasWidth}px`,
             height: `${canvasHeight}px`,
+            touchAction: "none",
           }}
         >
           {/* 테두리 */}
@@ -433,10 +407,10 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
             </span>
           )}
 
-          {/* Drawing Canvas */}
+          {/* Drawing Canvas — 이벤트는 네이티브 addEventListener로 처리 */}
           <canvas
             ref={canvasRef}
-            className="absolute touch-none"
+            className="absolute"
             style={{
               left: "0",
               top: "0",
@@ -444,12 +418,8 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
               height: `${canvasHeight}px`,
               cursor: isSubmitting ? "not-allowed" : "crosshair",
               opacity: isSubmitting ? 0.7 : 1,
+              touchAction: "none",
             }}
-            onPointerDown={isSubmitting ? undefined : startDrawing}
-            onPointerMove={isSubmitting ? undefined : draw}
-            onPointerUp={isSubmitting ? undefined : stopDrawing}
-            onPointerLeave={isSubmitting ? undefined : stopDrawing}
-            onPointerCancel={isSubmitting ? undefined : stopDrawing}
           />
 
           {/* Eraser / Clear Buttons */}
