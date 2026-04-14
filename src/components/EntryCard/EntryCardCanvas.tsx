@@ -1,5 +1,4 @@
-import { useState, useRef, useCallback } from "react";
-import { motion } from "framer-motion";
+import { useState, useRef, useCallback, useEffect } from "react";
 import HeaderSection from "./HeaderSection";
 import NameField from "./NameField";
 import PurposeSection from "./PurposeSection";
@@ -69,12 +68,24 @@ const EntryCardCanvas = () => {
   // 전송 가능 여부
   const canSubmit = worrySectionRef.current?.canSubmit() ?? false;
 
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.style.opacity = "1";
+      el.style.transform = "scale(1)";
+    });
+  }, []);
+
   return (
-    <div className="min-h-screen w-full flex items-center justify-center warm-paper-bg overflow-hidden px-8 py-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+    <div
+      className="min-h-screen w-full flex items-center justify-center warm-paper-bg overflow-hidden px-8 py-4"
+      style={{ touchAction: "none" }}
+    >
+      <div
+        ref={cardRef}
         className="relative select-none"
         style={{
           width: "1180px",
@@ -85,6 +96,10 @@ const EntryCardCanvas = () => {
           backgroundSize: "100% 100%",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
+          touchAction: "none",
+          opacity: 0,
+          transform: "scale(0.98)",
+          transition: "opacity 0.4s ease-out, transform 0.4s ease-out",
         }}
       >
         {/* Header */}
@@ -140,7 +155,7 @@ const EntryCardCanvas = () => {
           onSubmit={handleImmigrationSubmit}
           canSubmit={canSubmit}
         />
-      </motion.div>
+      </div>
     </div>
   );
 };

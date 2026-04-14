@@ -128,31 +128,34 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
 
-        const samples: PointerEvent[] =
-          "getCoalescedEvents" in e
-            ? (e.getCoalescedEvents().length > 0 ? e.getCoalescedEvents() : [e])
-            : [e];
+        const coalesced = "getCoalescedEvents" in e ? e.getCoalescedEvents() : null;
+        const samples = coalesced && coalesced.length > 0 ? coalesced : [e];
 
-        for (const sample of samples) {
-          const pt = toPoint(sample, rect);
-          if (!lastPointRef.current) break;
+        const scaleX = canvasWidth / rect.width;
+        const scaleY = canvasHeight / rect.height;
+        const isErase = curMode === "erase";
+        const eraseWidth = STROKE_WIDTH * 2;
 
-          ctx.lineWidth =
-            curMode === "erase"
-              ? STROKE_WIDTH * 2
-              : 5 + (pt.p ?? 0.5) * 8;
-
+        for (let i = 0; i < samples.length; i++) {
+          const s = samples[i];
+          const px = (s.clientX - rect.left) * scaleX;
+          const py = (s.clientY - rect.top) * scaleY;
+          const pp = s.pressure || 0.5;
           const from = lastPointRef.current;
-          const midX = (from.x + pt.x) / 2;
-          const midY = (from.y + pt.y) / 2;
+          if (!from) break;
+
+          ctx.lineWidth = isErase ? eraseWidth : 5 + pp * 8;
+
+          const midX = (from.x + px) / 2;
+          const midY = (from.y + py) / 2;
 
           ctx.beginPath();
           ctx.moveTo(from.x, from.y);
           ctx.quadraticCurveTo(from.x, from.y, midX, midY);
           ctx.stroke();
 
-          lastPointRef.current = { x: pt.x, y: pt.y };
-          currentStrokeRef.current.push(pt);
+          lastPointRef.current = { x: px, y: py };
+          currentStrokeRef.current.push({ x: px, y: py, t: s.timeStamp, p: pp });
         }
       };
 
@@ -386,17 +389,16 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
         {/* Canvas Container */}
         <div
-          className="absolute"
+          className="absolute rounded-lg"
           style={{
             left: "64px",
             top: `${320 + TOP_OFFSET}px`,
             width: `${canvasWidth}px`,
             height: `${canvasHeight}px`,
             touchAction: "none",
+            boxShadow: "inset 0 0 0 2px hsl(0 0% 42% / 0.3)",
           }}
         >
-          {/* 테두리 */}
-          <div className="absolute inset-0 border-2 border-dashed border-muted-foreground/30 rounded-lg pointer-events-none" />
 
           {/* Placeholder */}
           {!hasContent && (
@@ -419,6 +421,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
               cursor: isSubmitting ? "not-allowed" : "crosshair",
               opacity: isSubmitting ? 0.7 : 1,
               touchAction: "none",
+              willChange: "contents",
             }}
           />
 
