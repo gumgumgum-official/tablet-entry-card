@@ -35,18 +35,12 @@ function envFlagTrue(value: string | undefined): boolean {
 export function isCanvasPointerStartAllowed(
   pointerType: string | undefined | null
 ): boolean {
+  // 로컬 개발 환경: 모든 입력 허용
   if (import.meta.env.DEV) return true;
 
-  if (envFlagTrue(import.meta.env.VITE_ALLOW_ALL_POINTERS)) {
-    return true;
-  }
-
+  // 배포 환경: Apple Pencil(pen)만 허용
   const pt = pointerType ?? "";
-
-  const allowed =
-    pt === "pen" ||
-    (envFlagTrue(import.meta.env.VITE_ALLOW_TOUCH_AS_PEN) && pt === "touch") ||
-    (envFlagTrue(import.meta.env.VITE_ALLOW_MOUSE) && pt === "mouse");
+  const allowed = pt === "pen";
 
   if (!allowed && envFlagTrue(import.meta.env.VITE_DEBUG_POINTER)) {
     // eslint-disable-next-line no-console
