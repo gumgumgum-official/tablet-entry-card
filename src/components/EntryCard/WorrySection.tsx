@@ -12,8 +12,6 @@ import { coerceDisplaySeq } from "@/lib/gum-server/displaySeq";
 import { isCanvasPointerStartAllowed } from "@/lib/canvasPointer";
 
 interface WorrySectionProps {
-  value: string;
-  onChange: (value: string) => void;
   sessionId?: string;
 }
 
@@ -34,11 +32,13 @@ export interface WorrySectionHandle {
 const STROKE_WIDTH = 6;
 
 const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
-  ({ value, onChange, sessionId }, ref) => {
+  ({ sessionId }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const isDrawingRef = useRef(false);
     const [hasContent, setHasContent] = useState(false);
+    const hasContentRef = useRef(false);
     const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+    const canvasRectRef = useRef<DOMRect | null>(null);
     const [mode, setMode] = useState<"draw" | "erase">("draw");
 
     // Strokes 수집
@@ -72,25 +72,15 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
       ctx.scale(dpr, dpr);
       ctx.imageSmoothingEnabled = true;
 
-      // 기존 이미지 데이터 복원
-      if (value) {
-        const img = new Image();
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
-          setHasContent(true);
-        };
-        img.src = value;
-      }
     }, []);
 
     const getPointFromEvent = useCallback(
       (
         e: Pick<PointerEvent, "clientX" | "clientY" | "pressure" | "timeStamp">
       ): SubmitPoint | null => {
-        const canvas = canvasRef.current;
-        if (!canvas) return null;
+        const rect = canvasRectRef.current;
+        if (!rect) return null;
 
-        const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) * (canvasWidth / rect.width);
         const y = (e.clientY - rect.top) * (canvasHeight / rect.height);
         const pressure = e.pressure || 0.5;
@@ -122,7 +112,14 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         if (!isCanvasPointerStartAllowed(e.pointerType)) return;
         e.preventDefault();
         isDrawingRef.current = true;
-        setHasContent(true);
+
+        if (!hasContentRef.current) {
+          hasContentRef.current = true;
+          setHasContent(true);
+        }
+
+        const canvas = canvasRef.current;
+        if (canvas) canvasRectRef.current = canvas.getBoundingClientRect();
 
         const point = getPointFromEvent(e);
         if (point) {
@@ -248,14 +245,9 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
           currentStrokeRef.current = [];
         }
 
-        if (canvas) {
-          const dataUrl = canvas.toDataURL("image/png");
-          onChange(dataUrl);
-        }
-
         (e.target as HTMLElement).releasePointerCapture(e.pointerId);
       },
-      [mode, onChange]
+      [mode]
     );
 
     const clearCanvas = useCallback(() => {
@@ -264,12 +256,12 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
       if (!canvas || !ctx) return;
 
       ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      hasContentRef.current = false;
       setHasContent(false);
-      onChange("");
 
       strokesRef.current = [];
       currentStrokeRef.current = [];
-    }, [onChange]);
+    }, []);
 
     // 전송 핸들러
     const handleSubmit = useCallback(async (): Promise<boolean> => {

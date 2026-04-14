@@ -17,7 +17,6 @@ export interface EntryCardData {
   purposeEmployment: boolean;
   purposeBusiness: boolean;
   purposeWorryFree: boolean;
-  worryDescription: string;
   agreement1: boolean;
   agreement2: boolean;
   agreement3: boolean;
@@ -33,7 +32,6 @@ const EntryCardCanvas = () => {
     purposeEmployment: false,
     purposeBusiness: false,
     purposeWorryFree: true,
-    worryDescription: "",
     agreement1: false,
     agreement2: false,
     agreement3: false,
@@ -115,8 +113,6 @@ const EntryCardCanvas = () => {
         {/* Worry Section */}
         <WorrySection
           ref={worrySectionRef}
-          value={formData.worryDescription}
-          onChange={(value) => updateField("worryDescription", value)}
           sessionId={sessionId}
         />
 
