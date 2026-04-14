@@ -1,31 +1,32 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { isCanvasPointerStartAllowed } from "@/lib/canvasPointer";
 
-interface NameFieldProps {
-  value: string;
-  onChange: (value: string) => void;
-}
-
 const STROKE_WIDTH = 2;
+const STROKE_COLOR = "#2E2E2E";
 
-const NameField = ({ value, onChange }: NameFieldProps) => {
+const NameField = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const isDrawingRef = useRef(false);
   const [hasContent, setHasContent] = useState(false);
+  const hasContentRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const canvasRectRef = useRef<DOMRect | null>(null);
   const [isErasing, setIsErasing] = useState(false);
+  const isErasingRef = useRef(false);
 
-  // 캔버스 크기
+  useEffect(() => { isErasingRef.current = isErasing; }, [isErasing]);
+
   const canvasWidth = 580;
   const canvasHeight = 32;
 
-  // 캔버스 초기화
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { willReadFrequently: false });
     if (!ctx) return;
+    ctxRef.current = ctx;
 
     const dpr = window.devicePixelRatio || 1;
     canvas.width = canvasWidth * dpr;
@@ -33,109 +34,79 @@ const NameField = ({ value, onChange }: NameFieldProps) => {
     canvas.style.width = `${canvasWidth}px`;
     canvas.style.height = `${canvasHeight}px`;
     ctx.scale(dpr, dpr);
-
-    // 기존 이미지 데이터 복원
-    if (value) {
-      const img = new Image();
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
-        setHasContent(true);
-      };
-      img.src = value;
-    }
   }, []);
 
-  const getPointFromEvent = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return null;
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * (canvasWidth / rect.width);
-      const y = (e.clientY - rect.top) * (canvasHeight / rect.height);
-
-      return { x, y };
-    },
-    []
-  );
-
-  const startDrawing = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const handleDown = (e: PointerEvent) => {
       if (!isCanvasPointerStartAllowed(e.pointerType)) return;
       e.preventDefault();
-      setIsDrawing(true);
-      setHasContent(true);
-
-      const point = getPointFromEvent(e);
-      if (point) {
-        lastPointRef.current = { x: point.x, y: point.y };
+      isDrawingRef.current = true;
+      if (!hasContentRef.current) {
+        hasContentRef.current = true;
+        setHasContent(true);
       }
+      canvasRectRef.current = canvas.getBoundingClientRect();
+      const rect = canvasRectRef.current;
+      lastPointRef.current = {
+        x: (e.clientX - rect.left) * (canvasWidth / rect.width),
+        y: (e.clientY - rect.top) * (canvasHeight / rect.height),
+      };
+    };
 
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    },
-    [getPointFromEvent]
-  );
+    const handleMove = (e: PointerEvent) => {
+      if (!isDrawingRef.current) return;
+      const ctx = ctxRef.current;
+      const rect = canvasRectRef.current;
+      const from = lastPointRef.current;
+      if (!ctx || !rect || !from) return;
 
-  const draw = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (!isDrawing) return;
+      const x = (e.clientX - rect.left) * (canvasWidth / rect.width);
+      const y = (e.clientY - rect.top) * (canvasHeight / rect.height);
+      const erase = isErasingRef.current;
 
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext("2d");
-      if (!canvas || !ctx || !lastPointRef.current) return;
-
-      const point = getPointFromEvent(e);
-      if (!point) return;
-
-      const ctxMode = isErasing ? "destination-out" : "source-over";
-      ctx.save();
-      ctx.globalCompositeOperation = ctxMode;
-
-      const strokeWidth = isErasing ? STROKE_WIDTH * 2 : STROKE_WIDTH;
-
-      ctx.beginPath();
-      ctx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
-      ctx.lineTo(point.x, point.y);
-      ctx.strokeStyle = "hsl(0, 0%, 18%)";
-      ctx.lineWidth = strokeWidth;
+      ctx.globalCompositeOperation = erase ? "destination-out" : "source-over";
+      ctx.strokeStyle = STROKE_COLOR;
+      ctx.lineWidth = erase ? STROKE_WIDTH * 2 : STROKE_WIDTH;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(x, y);
       ctx.stroke();
 
-      ctx.restore();
+      lastPointRef.current = { x, y };
+    };
 
-      lastPointRef.current = { x: point.x, y: point.y };
-    },
-    [isDrawing, getPointFromEvent, isErasing]
-  );
-
-  const stopDrawing = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (!isDrawing) return;
-
-      setIsDrawing(false);
+    const handleUp = () => {
+      if (!isDrawingRef.current) return;
+      isDrawingRef.current = false;
       lastPointRef.current = null;
+    };
 
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const dataUrl = canvas.toDataURL("image/png");
-        onChange(dataUrl);
-      }
-
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    },
-    [isDrawing, onChange]
-  );
+    canvas.addEventListener("pointerdown", handleDown, { passive: false });
+    canvas.addEventListener("pointermove", handleMove, { passive: true });
+    canvas.addEventListener("pointerup", handleUp);
+    canvas.addEventListener("pointerleave", handleUp);
+    canvas.addEventListener("pointercancel", handleUp);
+    return () => {
+      canvas.removeEventListener("pointerdown", handleDown);
+      canvas.removeEventListener("pointermove", handleMove);
+      canvas.removeEventListener("pointerup", handleUp);
+      canvas.removeEventListener("pointerleave", handleUp);
+      canvas.removeEventListener("pointercancel", handleUp);
+    };
+  }, []);
 
   const clearCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return;
-
+    const ctx = ctxRef.current;
+    if (!ctx) return;
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    hasContentRef.current = false;
     setHasContent(false);
-    onChange("");
-  }, [onChange]);
+  }, []);
 
   return (
     <div className="absolute flex items-center" style={{ left: "64px", top: "128px" }}>
@@ -168,19 +139,15 @@ const NameField = ({ value, onChange }: NameFieldProps) => {
         {/* Drawing Canvas */}
         <canvas
           ref={canvasRef}
-          className="absolute touch-none"
+          className="absolute"
           style={{
             left: "0",
             top: "0",
             width: `${canvasWidth}px`,
             height: `${canvasHeight}px`,
             cursor: "crosshair",
+            touchAction: "none",
           }}
-          onPointerDown={startDrawing}
-          onPointerMove={draw}
-          onPointerUp={stopDrawing}
-          onPointerLeave={stopDrawing}
-          onPointerCancel={stopDrawing}
         />
 
         {/* Eraser / Clear Buttons */}

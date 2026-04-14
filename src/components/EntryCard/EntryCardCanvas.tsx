@@ -10,7 +10,6 @@ import backgroundImage from "@/assets/background2.png";
 import { getSessionId } from "@/lib/submit";
 
 export interface EntryCardData {
-  name: string;
   purposeTourism: boolean;
   purposeStudy: boolean;
   purposeEmployment: boolean;
@@ -19,13 +18,10 @@ export interface EntryCardData {
   agreement1: boolean;
   agreement2: boolean;
   agreement3: boolean;
-  signature: string;
-  entryDate: string;
 }
 
 const EntryCardCanvas = () => {
   const [formData, setFormData] = useState<EntryCardData>({
-    name: "",
     purposeTourism: false,
     purposeStudy: false,
     purposeEmployment: false,
@@ -34,8 +30,6 @@ const EntryCardCanvas = () => {
     agreement1: false,
     agreement2: false,
     agreement3: false,
-    signature: "",
-    entryDate: "",
   });
 
   // WorrySection ref
@@ -106,10 +100,7 @@ const EntryCardCanvas = () => {
         <HeaderSection />
 
         {/* Name Field */}
-        <NameField
-          value={formData.name}
-          onChange={(value) => updateField("name", value)}
-        />
+        <NameField />
 
         {/* Purpose Section */}
         <PurposeSection
@@ -142,12 +133,7 @@ const EntryCardCanvas = () => {
         />
 
         {/* Signature Section */}
-        <SignatureSection
-          signature={formData.signature}
-          date={formData.entryDate}
-          onSignatureChange={(value) => updateField("signature", value)}
-          onDateChange={(value) => updateField("entryDate", value)}
-        />
+        <SignatureSection />
 
         {/* Asset Placeholders - 입국심사 버튼 포함 */}
         <AssetPlaceholders

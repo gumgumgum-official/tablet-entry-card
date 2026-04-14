@@ -2,166 +2,114 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { format } from "date-fns";
 import { isCanvasPointerStartAllowed } from "@/lib/canvasPointer";
 
-interface SignatureSectionProps {
-  signature: string;
-  date: string;
-  onSignatureChange: (value: string) => void;
-  onDateChange: (value: string) => void;
-}
-
-// 위치 오프셋 (WorrySection 캔버스 높이 증가에 따른 조정)
 const TOP_OFFSET = 80;
 const STROKE_WIDTH = 2.5;
+const STROKE_COLOR = "#2E2E2E";
 
-const SignatureSection = ({
-  signature,
-  date,
-  onSignatureChange,
-  onDateChange,
-}: SignatureSectionProps) => {
+const SignatureSection = () => {
+  const [date] = useState(() => format(new Date(), "yyyy / MM / dd"));
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const isDrawingRef = useRef(false);
   const [hasContent, setHasContent] = useState(false);
+  const hasContentRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const canvasRectRef = useRef<DOMRect | null>(null);
   const [isErasing, setIsErasing] = useState(false);
+  const isErasingRef = useRef(false);
 
-  // 캔버스 크기 설정
+  useEffect(() => { isErasingRef.current = isErasing; }, [isErasing]);
+
   const canvasWidth = 300;
   const canvasHeight = 48;
 
-  // Set today's date on mount
-  useEffect(() => {
-    if (!date) {
-      const today = format(new Date(), "yyyy / MM / dd");
-      onDateChange(today);
-    }
-  }, [date, onDateChange]);
-
-  // 캔버스 초기화
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { willReadFrequently: false });
     if (!ctx) return;
+    ctxRef.current = ctx;
 
-    // 고해상도 디스플레이 지원
     const dpr = window.devicePixelRatio || 1;
     canvas.width = canvasWidth * dpr;
     canvas.height = canvasHeight * dpr;
     canvas.style.width = `${canvasWidth}px`;
     canvas.style.height = `${canvasHeight}px`;
     ctx.scale(dpr, dpr);
-
-    // 기존 이미지 데이터 복원
-    if (signature) {
-      const img = new Image();
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
-        setHasContent(true);
-      };
-      img.src = signature;
-    }
   }, []);
 
-  // 좌표 추출
-  const getPointFromEvent = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return null;
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * (canvasWidth / rect.width);
-      const y = (e.clientY - rect.top) * (canvasHeight / rect.height);
-
-      return { x, y };
-    },
-    []
-  );
-
-  // 그리기 시작
-  const startDrawing = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const handleDown = (e: PointerEvent) => {
       if (!isCanvasPointerStartAllowed(e.pointerType)) return;
       e.preventDefault();
-      setIsDrawing(true);
-      setHasContent(true);
-
-      const point = getPointFromEvent(e);
-      if (point) {
-        lastPointRef.current = { x: point.x, y: point.y };
+      isDrawingRef.current = true;
+      if (!hasContentRef.current) {
+        hasContentRef.current = true;
+        setHasContent(true);
       }
+      canvasRectRef.current = canvas.getBoundingClientRect();
+      const rect = canvasRectRef.current;
+      lastPointRef.current = {
+        x: (e.clientX - rect.left) * (canvasWidth / rect.width),
+        y: (e.clientY - rect.top) * (canvasHeight / rect.height),
+      };
+    };
 
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    },
-    [getPointFromEvent]
-  );
+    const handleMove = (e: PointerEvent) => {
+      if (!isDrawingRef.current) return;
+      const ctx = ctxRef.current;
+      const rect = canvasRectRef.current;
+      const from = lastPointRef.current;
+      if (!ctx || !rect || !from) return;
 
-  // 그리기
-  const draw = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (!isDrawing) return;
+      const x = (e.clientX - rect.left) * (canvasWidth / rect.width);
+      const y = (e.clientY - rect.top) * (canvasHeight / rect.height);
+      const erase = isErasingRef.current;
 
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext("2d");
-      if (!canvas || !ctx || !lastPointRef.current) return;
-
-      const point = getPointFromEvent(e);
-      if (!point) return;
-
-      const ctxMode = isErasing ? "destination-out" : "source-over";
-      ctx.save();
-      ctx.globalCompositeOperation = ctxMode;
-
-      const strokeWidth = isErasing ? STROKE_WIDTH * 2 : STROKE_WIDTH;
-
-      // 캔버스에 그리기
-      ctx.beginPath();
-      ctx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
-      ctx.lineTo(point.x, point.y);
-      ctx.strokeStyle = "hsl(0, 0%, 18%)";
-      ctx.lineWidth = strokeWidth;
+      ctx.globalCompositeOperation = erase ? "destination-out" : "source-over";
+      ctx.strokeStyle = STROKE_COLOR;
+      ctx.lineWidth = erase ? STROKE_WIDTH * 2 : STROKE_WIDTH;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(x, y);
       ctx.stroke();
 
-      ctx.restore();
+      lastPointRef.current = { x, y };
+    };
 
-      lastPointRef.current = { x: point.x, y: point.y };
-    },
-    [isDrawing, getPointFromEvent, isErasing]
-  );
-
-  // 그리기 종료
-  const stopDrawing = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (!isDrawing) return;
-
-      setIsDrawing(false);
+    const handleUp = () => {
+      if (!isDrawingRef.current) return;
+      isDrawingRef.current = false;
       lastPointRef.current = null;
+    };
 
-      // 캔버스 이미지 저장
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const dataUrl = canvas.toDataURL("image/png");
-        onSignatureChange(dataUrl);
-      }
+    canvas.addEventListener("pointerdown", handleDown, { passive: false });
+    canvas.addEventListener("pointermove", handleMove, { passive: true });
+    canvas.addEventListener("pointerup", handleUp);
+    canvas.addEventListener("pointerleave", handleUp);
+    canvas.addEventListener("pointercancel", handleUp);
+    return () => {
+      canvas.removeEventListener("pointerdown", handleDown);
+      canvas.removeEventListener("pointermove", handleMove);
+      canvas.removeEventListener("pointerup", handleUp);
+      canvas.removeEventListener("pointerleave", handleUp);
+      canvas.removeEventListener("pointercancel", handleUp);
+    };
+  }, []);
 
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    },
-    [isDrawing, onSignatureChange]
-  );
-
-  // 캔버스 지우기
   const clearCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return;
-
+    const ctx = ctxRef.current;
+    if (!ctx) return;
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    hasContentRef.current = false;
     setHasContent(false);
-    onSignatureChange("");
-  }, [onSignatureChange]);
+  }, []);
 
   return (
     <>
@@ -202,19 +150,15 @@ const SignatureSection = ({
           {/* Drawing Canvas */}
           <canvas
             ref={canvasRef}
-            className="absolute touch-none"
+            className="absolute"
             style={{
               left: "0",
               top: "0",
               width: `${canvasWidth}px`,
               height: `${canvasHeight}px`,
               cursor: "crosshair",
+              touchAction: "none",
             }}
-            onPointerDown={startDrawing}
-            onPointerMove={draw}
-            onPointerUp={stopDrawing}
-            onPointerLeave={stopDrawing}
-            onPointerCancel={stopDrawing}
           />
 
           {/* Eraser / Clear Buttons */}

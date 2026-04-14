@@ -112,7 +112,8 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         lastPointRef.current = { x: pt.x, y: pt.y };
         currentStrokeRef.current = [pt];
 
-        canvas.setPointerCapture(e.pointerId);
+        // setPointerCapture 제거: iPadOS Safari에서 capture 해제 후
+        // 다음 pointerdown 전달이 지연되는 현상 방지
       };
 
       const handlePointerMove = (e: PointerEvent) => {
@@ -209,7 +210,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
           currentStrokeRef.current = [];
         }
 
-        canvas.releasePointerCapture(e.pointerId);
+        // releasePointerCapture 제거 (setPointerCapture와 쌍)
       };
 
       canvas.addEventListener("pointerdown", handlePointerDown, { passive: false });

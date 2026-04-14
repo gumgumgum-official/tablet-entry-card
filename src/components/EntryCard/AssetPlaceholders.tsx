@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import type { EntryCardData } from "./EntryCardCanvas";
 import stampBadge from "@/assets/stamp2.png";
 import immigrationButton from "@/assets/immigration-button.png";
@@ -38,20 +37,10 @@ const AssetPlaceholders = ({
       />
 
       {/* Immigration Button with Hover Interaction */}
-      <motion.img
+      <img
         src={immigrationButton}
         alt="입국심사받기 Immigration"
         onClick={handleBadgeClick}
-        whileHover={canSubmit ? {
-          scale: 1.05,
-          filter: "brightness(1.1) drop-shadow(0 6px 12px rgba(0,0,0,0.2))",
-        } : undefined}
-        whileTap={canSubmit ? { scale: 0.95 } : undefined}
-        transition={{
-          type: "spring",
-          stiffness: 400,
-          damping: 17
-        }}
         className="absolute"
         style={{
           right: "10px",
@@ -62,6 +51,7 @@ const AssetPlaceholders = ({
           filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.15))",
           cursor: canSubmit ? "pointer" : "not-allowed",
           opacity: canSubmit ? 1 : 0.6,
+          transition: "transform 0.15s ease, filter 0.15s ease",
         }}
       />
 
