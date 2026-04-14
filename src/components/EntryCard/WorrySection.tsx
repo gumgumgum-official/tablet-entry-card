@@ -213,6 +213,13 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         // releasePointerCapture 제거 (setPointerCapture와 쌍)
       };
 
+      // iPadOS Scribble 감지를 우회하기 위해 touch 이벤트에서 preventDefault 호출.
+      // CSS touch-action:none만으로는 부족 — 실제 touch 이벤트를 claim해야
+      // 시스템이 Apple Pencil 입력을 즉시 전달함.
+      const preventTouch = (e: TouchEvent) => { e.preventDefault(); };
+
+      canvas.addEventListener("touchstart", preventTouch, { passive: false });
+      canvas.addEventListener("touchmove", preventTouch, { passive: false });
       canvas.addEventListener("pointerdown", handlePointerDown, { passive: false });
       canvas.addEventListener("pointermove", handlePointerMove, { passive: true });
       canvas.addEventListener("pointerup", handlePointerUp);
@@ -220,6 +227,8 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
       canvas.addEventListener("pointercancel", handlePointerUp);
 
       return () => {
+        canvas.removeEventListener("touchstart", preventTouch);
+        canvas.removeEventListener("touchmove", preventTouch);
         canvas.removeEventListener("pointerdown", handlePointerDown);
         canvas.removeEventListener("pointermove", handlePointerMove);
         canvas.removeEventListener("pointerup", handlePointerUp);

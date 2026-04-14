@@ -89,12 +89,18 @@ const SignatureSection = () => {
       lastPointRef.current = null;
     };
 
+    const preventTouch = (e: TouchEvent) => { e.preventDefault(); };
+
+    canvas.addEventListener("touchstart", preventTouch, { passive: false });
+    canvas.addEventListener("touchmove", preventTouch, { passive: false });
     canvas.addEventListener("pointerdown", handleDown, { passive: false });
     canvas.addEventListener("pointermove", handleMove, { passive: true });
     canvas.addEventListener("pointerup", handleUp);
     canvas.addEventListener("pointerleave", handleUp);
     canvas.addEventListener("pointercancel", handleUp);
     return () => {
+      canvas.removeEventListener("touchstart", preventTouch);
+      canvas.removeEventListener("touchmove", preventTouch);
       canvas.removeEventListener("pointerdown", handleDown);
       canvas.removeEventListener("pointermove", handleMove);
       canvas.removeEventListener("pointerup", handleUp);
