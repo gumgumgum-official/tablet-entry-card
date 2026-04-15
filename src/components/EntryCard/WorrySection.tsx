@@ -145,7 +145,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
           const from = lastPointRef.current;
           if (!from) break;
 
-          ctx.lineWidth = isErase ? eraseWidth : 5 + pp * 8;
+          ctx.lineWidth = isErase ? eraseWidth : STROKE_WIDTH;
 
           const midX = (from.x + px) / 2;
           const midY = (from.y + py) / 2;
