@@ -147,12 +147,9 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
           ctx.lineWidth = isErase ? eraseWidth : STROKE_WIDTH;
 
-          const midX = (from.x + px) / 2;
-          const midY = (from.y + py) / 2;
-
           ctx.beginPath();
           ctx.moveTo(from.x, from.y);
-          ctx.quadraticCurveTo(from.x, from.y, midX, midY);
+          ctx.lineTo(px, py);
           ctx.stroke();
 
           lastPointRef.current = { x: px, y: py };
