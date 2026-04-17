@@ -73,12 +73,18 @@ const EntryCardCanvas = () => {
 
   // 실제 가시 뷰포트 + safe-area-inset 반영 스케일 계산
   useEffect(() => {
-    const readInset = (side: "top" | "right" | "bottom" | "left") => {
+    // CSS custom property는 env() 값을 verbatim으로 저장해 parseFloat이 NaN을 반환함.
+    // 래퍼 엘리먼트의 padding에 env()가 이미 적용되어 있으므로 resolved computed padding을 읽음.
+    const readInsets = () => {
       const el = wrapperRef.current;
-      if (!el) return 0;
-      const val = getComputedStyle(el).getPropertyValue(`--sai-${side}`).trim();
-      const parsed = parseFloat(val);
-      return Number.isFinite(parsed) ? parsed : 0;
+      if (!el) return { top: 0, right: 0, bottom: 0, left: 0 };
+      const cs = getComputedStyle(el);
+      return {
+        top: parseFloat(cs.paddingTop) || 0,
+        right: parseFloat(cs.paddingRight) || 0,
+        bottom: parseFloat(cs.paddingBottom) || 0,
+        left: parseFloat(cs.paddingLeft) || 0,
+      };
     };
 
     const computeScale = () => {
@@ -86,18 +92,15 @@ const EntryCardCanvas = () => {
       const vw = vv?.width ?? window.innerWidth;
       const vh = vv?.height ?? window.innerHeight;
 
-      const insetTop = readInset("top");
-      const insetBottom = readInset("bottom");
-      const insetLeft = readInset("left");
-      const insetRight = readInset("right");
+      const { top, right, bottom, left } = readInsets();
 
       setIsPortrait(vh > vw);
 
       // safe area(상태바/홈 인디케이터 영역) 제외한 실제 사용 가능 영역 기준 축소
       const paddingX = 8;
       const paddingY = 8;
-      const availableW = vw - insetLeft - insetRight - paddingX * 2;
-      const availableH = vh - insetTop - insetBottom - paddingY * 2;
+      const availableW = vw - left - right - paddingX * 2;
+      const availableH = vh - top - bottom - paddingY * 2;
       const next = Math.min(availableW / CARD_WIDTH, availableH / CARD_HEIGHT);
       setScale(next > 0 ? next : 1);
     };
@@ -123,11 +126,7 @@ const EntryCardCanvas = () => {
         height: "100dvh",
         minHeight: "100dvh",
         touchAction: "none",
-        // safe-area-inset 값을 CSS 변수로 노출해 JS에서 실제 픽셀값을 읽음
-        ["--sai-top" as string]: "env(safe-area-inset-top)",
-        ["--sai-right" as string]: "env(safe-area-inset-right)",
-        ["--sai-bottom" as string]: "env(safe-area-inset-bottom)",
-        ["--sai-left" as string]: "env(safe-area-inset-left)",
+        // 래퍼 padding에 env() 적용 → getComputedStyle로 resolved px값을 JS에서 읽어 스케일 계산에 사용
         paddingTop: "env(safe-area-inset-top)",
         paddingRight: "env(safe-area-inset-right)",
         paddingBottom: "env(safe-area-inset-bottom)",
