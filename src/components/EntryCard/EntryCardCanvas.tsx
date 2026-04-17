@@ -138,27 +138,37 @@ const EntryCardCanvas = () => {
           화면을 가로 방향으로 돌려주세요
         </div>
       )}
+      {/*
+        transform: scale()은 시각적으로만 축소하고 DOM 레이아웃 공간은 원본 크기 그대로 유지.
+        scale된 실제 크기만큼의 sizing 박스로 감싸서 레이아웃 공간 = 시각 크기가 되도록 맞춤.
+      */}
       <div
-        ref={cardRef}
-        className="relative select-none"
         style={{
-          width: `${CARD_WIDTH}px`,
-          height: `${CARD_HEIGHT}px`,
+          width: `${CARD_WIDTH * (scale || 1)}px`,
+          height: `${CARD_HEIGHT * (scale || 1)}px`,
           flexShrink: 0,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
-          borderRadius: "16px",
-          backgroundImage: `url(${backgroundImage})`,
-          backgroundSize: "100% 100%",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          touchAction: "none",
           visibility: isReady ? "visible" : "hidden",
           opacity: isReady ? 1 : 0,
-          transform: `scale(${scale || 1})`,
-          transformOrigin: "center center",
           transition: "opacity 0.3s ease-out",
         }}
       >
+        <div
+          ref={cardRef}
+          className="relative select-none"
+          style={{
+            width: `${CARD_WIDTH}px`,
+            height: `${CARD_HEIGHT}px`,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+            borderRadius: "16px",
+            backgroundImage: `url(${backgroundImage})`,
+            backgroundSize: "100% 100%",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            touchAction: "none",
+            transform: `scale(${scale || 1})`,
+            transformOrigin: "top left",
+          }}
+        >
         {/* Header */}
         <HeaderSection />
 
@@ -204,6 +214,7 @@ const EntryCardCanvas = () => {
           onSubmit={handleImmigrationSubmit}
           canSubmit={canSubmit}
         />
+        </div>
       </div>
     </div>
   );
