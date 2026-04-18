@@ -9,10 +9,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
-import {
-  roundCoord,
-  strokePolylineToClosedFillPathD,
-} from "../_shared/fixedWidthFillOutline.ts";
 
 // ============================================================================
 // Types
@@ -66,10 +62,26 @@ const REALTIME_CHANNEL_PREFIX = Deno.env.get("REALTIME_CHANNEL_PREFIX") || "exhi
 // SVG Conversion
 // ============================================================================
 
-const PATH_PRECISION = 2;
+/** 숫자 반올림 */
+function round(value: number, precision: number = 2): number {
+  const factor = Math.pow(10, precision);
+  return Math.round(value * factor) / factor;
+}
 
-function round(value: number, precision: number = PATH_PRECISION): number {
-  return roundCoord(value, precision);
+/**
+ * Strokes를 고정 폭 polyline path로 변환.
+ * pressure는 완전히 무시되며, 모든 선은 baseStrokeWidth로 동일한 굵기로 렌더된다.
+ * 캔버스 측 ctx(lineWidth 고정, lineCap/lineJoin = round)와 1:1로 동일하게 보이도록 맞춤.
+ */
+function strokeToPolylinePath(stroke: StrokePoint[]): string {
+  if (stroke.length < 2) return "";
+
+  const parts: string[] = [];
+  parts.push(`M ${round(stroke[0].x)} ${round(stroke[0].y)}`);
+  for (let i = 1; i < stroke.length; i++) {
+    parts.push(`L ${round(stroke[i].x)} ${round(stroke[i].y)}`);
+  }
+  return parts.join(" ");
 }
 
 /**
@@ -93,7 +105,7 @@ function strokesToSVG(
   const viewBoxWidth = canvas.width;
   const viewBoxHeight = canvas.height;
 
-  // Closed filled paths (Extrude-friendly; matches client strokesToStorageParitySVG)
+  // SVG 요소 생성 (고정 폭 polyline + 단일 점은 circle)
   const svgElements: string[] = [];
 
   for (const stroke of strokes) {
@@ -102,20 +114,15 @@ function strokesToSVG(
     if (stroke.length === 1) {
       const only = stroke[0];
       svgElements.push(
-        `    <circle cx="${round(only.x)}" cy="${round(only.y)}" r="${round(baseStrokeWidth / 2)}" fill="${color}" stroke="none"/>`
+        `    <circle cx="${round(only.x)}" cy="${round(only.y)}" r="${round(baseStrokeWidth / 2)}" fill="${color}"/>`
       );
       continue;
     }
 
-    const pathData = strokePolylineToClosedFillPathD(
-      stroke,
-      baseStrokeWidth,
-      PATH_PRECISION,
-      { smooth: true },
-    );
+    const pathData = strokeToPolylinePath(stroke);
     if (pathData) {
       svgElements.push(
-        `    <path d="${pathData}" fill="${color}" stroke="none" fill-rule="nonzero"/>`,
+        `    <path d="${pathData}" fill="none" stroke="${color}" stroke-width="${baseStrokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`
       );
     }
   }
