@@ -6,7 +6,6 @@
  */
 
 import type { Stroke, StrokeData, SVGOptions } from "./types";
-import { roundCoord, strokePolylineToClosedFillPathD } from "./fixedWidthFillOutline";
 
 /** 기본 SVG 옵션 */
 const DEFAULT_OPTIONS: SVGOptions = {
@@ -242,57 +241,6 @@ function createEmptySVG(width: number, height: number): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
   <g id="strokes"></g>
-</svg>`;
-}
-
-/**
- * Edge `handwriting-to-svg` parity: full-canvas viewBox, closed filled ribbon paths.
- */
-export function strokesToStorageParitySVG(
-  strokeData: StrokeData,
-  options: Partial<SVGOptions> = {},
-): string {
-  const opts: SVGOptions = { ...DEFAULT_OPTIONS, ...options };
-  const { strokes, width, height } = strokeData;
-  const { strokeColor, baseStrokeWidth, precision } = opts;
-
-  if (strokes.length === 0) {
-    return createEmptySVG(width, height);
-  }
-
-  const svgElements: string[] = [];
-  const r = (v: number) => roundCoord(v, precision);
-
-  for (const stroke of strokes) {
-    const pts = stroke.points;
-    if (pts.length === 0) continue;
-
-    if (pts.length === 1) {
-      const only = pts[0];
-      svgElements.push(
-        `  <circle cx="${r(only.x)}" cy="${r(only.y)}" r="${r(baseStrokeWidth / 2)}" fill="${stroke.color || strokeColor}" stroke="none"/>`,
-      );
-      continue;
-    }
-
-    const pathData = strokePolylineToClosedFillPathD(
-      pts,
-      baseStrokeWidth,
-      precision,
-      { smooth: true },
-    );
-    if (pathData) {
-      svgElements.push(
-        `  <path d="${pathData}" fill="${stroke.color || strokeColor}" stroke="none" fill-rule="nonzero"/>`,
-      );
-    }
-  }
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet">
-  <g id="strokes">
-${svgElements.join("\n")}
-  </g>
 </svg>`;
 }
 
