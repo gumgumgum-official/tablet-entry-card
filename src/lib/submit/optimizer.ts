@@ -41,7 +41,6 @@ function optimizeStroke(points: SubmitPoint[]): SubmitPoint[] {
     minDistHigh,
     maxPointsPerStroke,
     highPointsThreshold,
-    pressurePrecision,
   } = OPTIMIZER_CONFIG;
   
   // 1. 샘플링 거리 결정
@@ -65,14 +64,11 @@ function optimizeStroke(points: SubmitPoint[]): SubmitPoint[] {
     sampled = newSampled;
   }
   
-  // 4. 값 정규화 (정수 반올림, pressure 소수점 제한)
-  const factor = Math.pow(10, pressurePrecision);
-  
+  // 4. 값 정규화 (정수 반올림). pressure는 렌더링에 쓰이지 않으므로 전송에서 제외.
   return sampled.map(p => ({
     x: Math.round(p.x),
     y: Math.round(p.y),
     t: Math.round(p.t),
-    p: Math.round(p.p * factor) / factor,
   }));
 }
 

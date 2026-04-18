@@ -1,7 +1,9 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { isCanvasPointerStartAllowed } from "@/lib/canvasPointer";
+import { densifySegmentToSubmitPoints } from "@/lib/strokeDensify";
 
 const STROKE_WIDTH = 2;
+const DENSIFY_MAX_STEP = STROKE_WIDTH * 0.35;
 const STROKE_COLOR = "#2E2E2E";
 
 const NameField = () => {
@@ -72,12 +74,25 @@ const NameField = () => {
       ctx.lineWidth = erase ? STROKE_WIDTH * 2 : STROKE_WIDTH;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      ctx.beginPath();
-      ctx.moveTo(from.x, from.y);
-      ctx.lineTo(x, y);
-      ctx.stroke();
 
-      lastPointRef.current = { x, y };
+      const densified = densifySegmentToSubmitPoints(
+        from.x,
+        from.y,
+        0,
+        x,
+        y,
+        0,
+        DENSIFY_MAX_STEP
+      );
+      let prev = from;
+      for (const p of densified) {
+        ctx.beginPath();
+        ctx.moveTo(prev.x, prev.y);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        prev = { x: p.x, y: p.y };
+      }
+      lastPointRef.current = prev;
     };
 
     const handleUp = () => {

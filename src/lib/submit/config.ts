@@ -56,9 +56,6 @@ export const OPTIMIZER_CONFIG = {
   
   /** 포인트 과다 판단 기준 */
   highPointsThreshold: 500,
-  
-  /** pressure 소수점 자릿수 */
-  pressurePrecision: 2,
 } as const;
 
 /** LocalStorage 키 */

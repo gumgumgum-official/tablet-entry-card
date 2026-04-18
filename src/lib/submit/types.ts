@@ -9,7 +9,8 @@ export interface SubmitPoint {
   x: number;
   y: number;
   t: number;  // timestamp
-  p: number;  // pressure (0-1)
+  /** pressure (0-1) — 현재 렌더링에서는 사용하지 않으며, 하위호환을 위해 optional */
+  p?: number;
 }
 
 /** 캔버스 크기 정보 */

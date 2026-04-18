@@ -10,6 +10,7 @@ import {
 import { requestMonitorAssignment } from "@/lib/gum-server/requestMonitor";
 import { coerceDisplaySeq } from "@/lib/gum-server/displaySeq";
 import { isCanvasPointerStartAllowed } from "@/lib/canvasPointer";
+import { densifySegmentToSubmitPoints } from "@/lib/strokeDensify";
 
 interface WorrySectionProps {
   sessionId?: string;
@@ -31,6 +32,8 @@ export interface WorrySectionHandle {
 
 const STROKE_WIDTH = 6;
 const STROKE_COLOR = "#2E2E2E";
+/** 빠른 스트로크 시 포인트 간격이 벌어지지 않도록 보간 최대 간격 (px) */
+const DENSIFY_MAX_STEP = STROKE_WIDTH * 0.35;
 
 const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
   ({ sessionId }, ref) => {
@@ -90,7 +93,6 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         x: (e.clientX - rect.left) * (canvasWidth / rect.width),
         y: (e.clientY - rect.top) * (canvasHeight / rect.height),
         t: e.timeStamp,
-        p: e.pressure || 0.5,
       });
 
       const handlePointerDown = (e: PointerEvent) => {
@@ -141,19 +143,35 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
           const s = samples[i];
           const px = (s.clientX - rect.left) * scaleX;
           const py = (s.clientY - rect.top) * scaleY;
-          const pp = s.pressure || 0.5;
           const from = lastPointRef.current;
           if (!from) break;
 
           ctx.lineWidth = isErase ? eraseWidth : STROKE_WIDTH;
 
-          ctx.beginPath();
-          ctx.moveTo(from.x, from.y);
-          ctx.lineTo(px, py);
-          ctx.stroke();
+          const t0 =
+            currentStrokeRef.current.length > 0
+              ? currentStrokeRef.current[currentStrokeRef.current.length - 1]!.t
+              : s.timeStamp;
+          const densified = densifySegmentToSubmitPoints(
+            from.x,
+            from.y,
+            t0,
+            px,
+            py,
+            s.timeStamp,
+            DENSIFY_MAX_STEP
+          );
 
-          lastPointRef.current = { x: px, y: py };
-          currentStrokeRef.current.push({ x: px, y: py, t: s.timeStamp, p: pp });
+          let prev = from;
+          for (const p of densified) {
+            ctx.beginPath();
+            ctx.moveTo(prev.x, prev.y);
+            ctx.lineTo(p.x, p.y);
+            ctx.stroke();
+            currentStrokeRef.current.push(p);
+            prev = { x: p.x, y: p.y };
+          }
+          lastPointRef.current = prev;
         }
       };
 

@@ -18,7 +18,8 @@ interface StrokePoint {
   x: number;
   y: number;
   t: number;
-  p: number;
+  /** pressure — 하위호환 목적의 optional 필드. 현재 렌더링에서는 사용하지 않음 */
+  p?: number;
 }
 
 interface CanvasSize {
@@ -94,74 +95,19 @@ function calculateBoundingBox(strokes: StrokePoint[][]): {
 }
 
 /**
- * Strokes를 채워진(filled) SVG path로 변환
- * 가변 폭 지원 - pressure에 따라 선 두께 변화
+ * Strokes를 고정 폭 polyline path로 변환.
+ * pressure는 완전히 무시되며, 모든 선은 baseStrokeWidth로 동일한 굵기로 렌더된다.
+ * 캔버스 측 ctx(lineWidth 고정, lineCap/lineJoin = round)와 1:1로 동일하게 보이도록 맞춤.
  */
-function strokeToFilledPath(
-  stroke: StrokePoint[],
-  baseWidth: number,
-  pressureMultiplier: number = 4
-): string {
+function strokeToPolylinePath(stroke: StrokePoint[]): string {
   if (stroke.length < 2) return "";
 
-  // 상단 경계와 하단 경계를 따로 계산
-  const upperPath: { x: number; y: number }[] = [];
-  const lowerPath: { x: number; y: number }[] = [];
-
-  for (let i = 0; i < stroke.length; i++) {
-    const point = stroke[i];
-    const width = (baseWidth + point.p * pressureMultiplier) / 2;
-
-    // 방향 벡터 계산
-    let dx: number, dy: number;
-    if (i === 0) {
-      dx = stroke[1].x - point.x;
-      dy = stroke[1].y - point.y;
-    } else if (i === stroke.length - 1) {
-      dx = point.x - stroke[i - 1].x;
-      dy = point.y - stroke[i - 1].y;
-    } else {
-      dx = stroke[i + 1].x - stroke[i - 1].x;
-      dy = stroke[i + 1].y - stroke[i - 1].y;
-    }
-
-    // 수직 벡터 (정규화)
-    const length = Math.sqrt(dx * dx + dy * dy);
-    if (length === 0) {
-      upperPath.push({ x: point.x, y: point.y - width });
-      lowerPath.push({ x: point.x, y: point.y + width });
-    } else {
-      const nx = -dy / length;
-      const ny = dx / length;
-
-      upperPath.push({
-        x: round(point.x + nx * width),
-        y: round(point.y + ny * width),
-      });
-      lowerPath.push({
-        x: round(point.x - nx * width),
-        y: round(point.y - ny * width),
-      });
-    }
+  const parts: string[] = [];
+  parts.push(`M ${round(stroke[0].x)} ${round(stroke[0].y)}`);
+  for (let i = 1; i < stroke.length; i++) {
+    parts.push(`L ${round(stroke[i].x)} ${round(stroke[i].y)}`);
   }
-
-  // 상단 → 끝 → 하단(역순) → 시작으로 닫힌 path 생성
-  const pathParts: string[] = [];
-
-  // 상단 경로
-  pathParts.push(`M ${upperPath[0].x} ${upperPath[0].y}`);
-  for (let i = 1; i < upperPath.length; i++) {
-    pathParts.push(`L ${upperPath[i].x} ${upperPath[i].y}`);
-  }
-
-  // 하단 경로 (역순)
-  for (let i = lowerPath.length - 1; i >= 0; i--) {
-    pathParts.push(`L ${lowerPath[i].x} ${lowerPath[i].y}`);
-  }
-
-  pathParts.push("Z"); // 닫힌 path
-
-  return pathParts.join(" ");
+  return parts.join(" ");
 }
 
 /**
@@ -186,16 +132,24 @@ function strokesToSVG(
   const viewBoxWidth = Math.ceil(bbox.maxX - bbox.minX + padding * 2);
   const viewBoxHeight = Math.ceil(bbox.maxY - bbox.minY + padding * 2);
 
-  // SVG path 생성
-  const pathElements: string[] = [];
+  // SVG 요소 생성 (고정 폭 polyline + 단일 점은 circle)
+  const svgElements: string[] = [];
 
   for (const stroke of strokes) {
-    if (stroke.length < 2) continue;
+    if (stroke.length === 0) continue;
 
-    const pathData = strokeToFilledPath(stroke, baseStrokeWidth);
+    if (stroke.length === 1) {
+      const only = stroke[0];
+      svgElements.push(
+        `    <circle cx="${round(only.x)}" cy="${round(only.y)}" r="${round(baseStrokeWidth / 2)}" fill="${color}"/>`
+      );
+      continue;
+    }
+
+    const pathData = strokeToPolylinePath(stroke);
     if (pathData) {
-      pathElements.push(
-        `    <path d="${pathData}" fill="${color}" stroke="none"/>`
+      svgElements.push(
+        `    <path d="${pathData}" fill="none" stroke="${color}" stroke-width="${baseStrokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`
       );
     }
   }
@@ -203,7 +157,7 @@ function strokesToSVG(
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}" width="${canvas.width}" height="${canvas.height}">
   <g id="strokes">
-${pathElements.join("\n")}
+${svgElements.join("\n")}
   </g>
 </svg>`;
 }
