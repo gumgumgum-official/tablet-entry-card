@@ -25,9 +25,13 @@ export {
 // SVG Conversion
 export {
   strokesToSVG,
+  strokesToStorageParitySVG,
   svgToBlob,
   svgToFile,
 } from "./svg-converter";
+
+export type { ClosedFillPathOptions } from "./fixedWidthFillOutline";
+export { roundCoord, strokePolylineToClosedFillPathD } from "./fixedWidthFillOutline";
 
 // Upload Service
 export {

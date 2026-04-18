@@ -8,7 +8,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { StrokeData, UploadResult, SVGOptions } from "./types";
 import { simplifyStrokes, getCompressionStats } from "./simplify";
-import { strokesToSVG, svgToFile } from "./svg-converter";
+import { strokesToSVG, strokesToStorageParitySVG, svgToFile } from "./svg-converter";
 
 /** Storage Bucket 이름 */
 const STORAGE_BUCKET = "strokes";
@@ -37,11 +37,18 @@ export async function uploadStrokeData(
   options?: {
     svgOptions?: Partial<SVGOptions>;
     useVariableWidth?: boolean;
+    /** Same filled-outline SVG as Edge `handwriting-to-svg` (for 3D extrusion). */
+    useStorageParitySvg?: boolean;
     skipSimplify?: boolean;
   }
 ): Promise<UploadResult> {
   try {
-    const { svgOptions, useVariableWidth = false, skipSimplify = false } = options || {};
+    const {
+      svgOptions,
+      useVariableWidth = false,
+      useStorageParitySvg = false,
+      skipSimplify = false,
+    } = options || {};
 
     // 1. 스트로크가 없으면 업로드하지 않음
     if (strokeData.strokes.length === 0) {
@@ -68,7 +75,9 @@ export async function uploadStrokeData(
       ...strokeData,
       strokes: processedStrokes,
     };
-    const svgString = strokesToSVG(processedData, svgOptions, useVariableWidth);
+    const svgString = useStorageParitySvg
+      ? strokesToStorageParitySVG(processedData, svgOptions)
+      : strokesToSVG(processedData, svgOptions, useVariableWidth);
 
     // 4. File 객체 생성
     const filename = generateFilename();
