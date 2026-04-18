@@ -175,13 +175,14 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         }
       };
 
-      const handlePointerUp = (e: PointerEvent) => {
+      const handlePointerUp = () => {
         if (!isDrawingRef.current) return;
 
         isDrawingRef.current = false;
         lastPointRef.current = null;
 
         const curMode = modeRef.current;
+
         if (curMode === "draw") {
           if (currentStrokeRef.current.length > 0) {
             strokesRef.current.push(currentStrokeRef.current);
@@ -452,30 +453,30 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
           {/* Eraser / Clear Buttons */}
           {hasContent && !isSubmitting && (
-            <>
-              <button
-                onClick={() =>
-                  setMode((prev) => (prev === "draw" ? "erase" : "draw"))
-                }
-                className={`absolute z-10 px-2 py-1 rounded text-xs transition-all ${
-                  mode === "erase"
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/20"
-                }`}
-                style={{ right: "64px", top: "8px" }}
-                type="button"
-              >
-                {mode === "erase" ? "부분 지우개 ON" : "부분 지우개"}
-              </button>
+            <div
+              className="absolute z-10 top-2 right-2 flex flex-row-reverse items-center gap-4"
+            >
               <button
                 onClick={clearCanvas}
-                className="absolute z-10 px-2 py-1 rounded text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/20 transition-all"
-                style={{ right: "8px", top: "8px" }}
+                className="px-2 py-1 rounded text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/20 transition-all shrink-0"
                 type="button"
               >
                 전체 지우기
               </button>
-            </>
+              <button
+                onClick={() =>
+                  setMode((prev) => (prev === "draw" ? "erase" : "draw"))
+                }
+                className={`px-2 py-1 rounded text-xs transition-all shrink-0 ${
+                  mode === "erase"
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/20"
+                }`}
+                type="button"
+              >
+                {mode === "erase" ? "부분 지우개 ON" : "부분 지우개"}
+              </button>
+            </div>
           )}
         </div>
 
