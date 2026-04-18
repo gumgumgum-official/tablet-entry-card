@@ -34,6 +34,7 @@ const EntryCardCanvas = () => {
 
   // WorrySection ref
   const worrySectionRef = useRef<WorrySectionHandle>(null);
+  const [worryCanSubmit, setWorryCanSubmit] = useState(false);
 
   // Session ID (URL 파라미터 또는 환경변수)
   const sessionId = getSessionId();
@@ -59,8 +60,9 @@ const EntryCardCanvas = () => {
     console.log("[EntryCard] Submit result:", success);
   }, []);
 
-  // 전송 가능 여부
-  const canSubmit = worrySectionRef.current?.canSubmit() ?? false;
+  const handleWorryCanSubmitChange = useCallback((can: boolean) => {
+    setWorryCanSubmit(can);
+  }, []);
 
   const cardRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -193,6 +195,7 @@ const EntryCardCanvas = () => {
         <WorrySection
           ref={worrySectionRef}
           sessionId={sessionId}
+          onCanSubmitChange={handleWorryCanSubmitChange}
         />
 
         {/* Agreement Section */}
@@ -212,7 +215,7 @@ const EntryCardCanvas = () => {
         <AssetPlaceholders
           formData={formData}
           onSubmit={handleImmigrationSubmit}
-          canSubmit={canSubmit}
+          canSubmit={worryCanSubmit}
         />
         </div>
       </div>

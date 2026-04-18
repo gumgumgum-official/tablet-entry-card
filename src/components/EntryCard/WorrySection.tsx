@@ -14,6 +14,8 @@ import { densifySegmentToSubmitPoints } from "@/lib/strokeDensify";
 
 interface WorrySectionProps {
   sessionId?: string;
+  /** Parent sync: true when the worry canvas has strokes and is not submitting. */
+  onCanSubmitChange?: (canSubmit: boolean) => void;
 }
 
 /** WorrySection에서 노출하는 메서드 */
@@ -30,13 +32,14 @@ export interface WorrySectionHandle {
   clear: () => void;
 }
 
-const STROKE_WIDTH = 6;
+/** 캔버스 필기 선 두께(px). SVG/Edge baseStrokeWidth와 맞춰 화면과 저장본이 일치함 */
+const STROKE_WIDTH = 10;
 const STROKE_COLOR = "#2E2E2E";
 /** 빠른 스트로크 시 포인트 간격이 벌어지지 않도록 보간 최대 간격 (px) */
 const DENSIFY_MAX_STEP = STROKE_WIDTH * 0.35;
 
 const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
-  ({ sessionId }, ref) => {
+  ({ sessionId, onCanSubmitChange }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
     const isDrawingRef = useRef(false);
@@ -58,6 +61,10 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
     useEffect(() => { modeRef.current = mode; }, [mode]);
     useEffect(() => { isSubmittingRef.current = isSubmitting; }, [isSubmitting]);
+
+    useEffect(() => {
+      onCanSubmitChange?.(hasContent && !isSubmitting);
+    }, [hasContent, isSubmitting, onCanSubmitChange]);
 
     // 캔버스 크기
     const canvasWidth = 720;
@@ -285,7 +292,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
           sessionId,
           canvas: { width: canvasWidth, height: canvasHeight },
           color: '#2E2E2E',
-          baseStrokeWidth: 6, // 현재 캔버스 선 두께와 맞춤
+          baseStrokeWidth: STROKE_WIDTH,
         });
 
         if (result.success) {

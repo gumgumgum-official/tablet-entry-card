@@ -223,7 +223,7 @@ const SignatureSection = () => {
         <span
           className="text-foreground"
           style={{
-            fontSize: "16px",
+            fontSize: "14px",
             fontWeight: 500,
           }}
         >
@@ -232,7 +232,7 @@ const SignatureSection = () => {
         <span
           className="ml-3 text-foreground handwriting"
           style={{
-            fontSize: "22px",
+            fontSize: "16px",
             fontWeight: 500,
             letterSpacing: "0.02em",
           }}

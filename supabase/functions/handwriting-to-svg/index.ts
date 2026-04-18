@@ -68,32 +68,6 @@ function round(value: number, precision: number = 2): number {
   return Math.round(value * factor) / factor;
 }
 
-/** 바운딩 박스 계산 */
-function calculateBoundingBox(strokes: StrokePoint[][]): {
-  minX: number;
-  minY: number;
-  maxX: number;
-  maxY: number;
-} {
-  let minX = Infinity, maxX = -Infinity;
-  let minY = Infinity, maxY = -Infinity;
-
-  for (const stroke of strokes) {
-    for (const point of stroke) {
-      minX = Math.min(minX, point.x);
-      maxX = Math.max(maxX, point.x);
-      minY = Math.min(minY, point.y);
-      maxY = Math.max(maxY, point.y);
-    }
-  }
-
-  if (minX === Infinity) {
-    return { minX: 0, minY: 0, maxX: 100, maxY: 100 };
-  }
-
-  return { minX, minY, maxX, maxY };
-}
-
 /**
  * Strokes를 고정 폭 polyline path로 변환.
  * pressure는 완전히 무시되며, 모든 선은 baseStrokeWidth로 동일한 굵기로 렌더된다.
@@ -118,19 +92,18 @@ function strokesToSVG(
   canvas: CanvasSize,
   meta: SubmitMeta
 ): string {
-  const padding = 10;
   const { color, baseStrokeWidth } = meta;
 
   if (strokes.length === 0) {
     return createEmptySVG(canvas.width, canvas.height);
   }
 
-  // viewBox 계산
-  const bbox = calculateBoundingBox(strokes);
-  const viewBoxX = Math.floor(bbox.minX - padding);
-  const viewBoxY = Math.floor(bbox.minY - padding);
-  const viewBoxWidth = Math.ceil(bbox.maxX - bbox.minX + padding * 2);
-  const viewBoxHeight = Math.ceil(bbox.maxY - bbox.minY + padding * 2);
+  // Full-canvas viewBox (same coords as tablet). Tight bbox + width/height=canvas
+  // changed aspect ratio; object-fit:fill etc. then non-uniformly scales strokes.
+  const viewBoxX = 0;
+  const viewBoxY = 0;
+  const viewBoxWidth = canvas.width;
+  const viewBoxHeight = canvas.height;
 
   // SVG 요소 생성 (고정 폭 polyline + 단일 점은 circle)
   const svgElements: string[] = [];
@@ -155,7 +128,7 @@ function strokesToSVG(
   }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}" width="${canvas.width}" height="${canvas.height}">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}" width="${canvas.width}" height="${canvas.height}" preserveAspectRatio="xMidYMid meet">
   <g id="strokes">
 ${svgElements.join("\n")}
   </g>
@@ -164,7 +137,7 @@ ${svgElements.join("\n")}
 
 function createEmptySVG(width: number, height: number): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet">
   <g id="strokes"></g>
 </svg>`;
 }
