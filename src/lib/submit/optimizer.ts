@@ -49,25 +49,22 @@ function optimizeStroke(points: SubmitPoint[]): SubmitPoint[] {
   // 2. 거리 기반 샘플링
   let sampled = sampleByDistance(points, minDist);
   
-  // 3. 최대 포인트 수 제한
+  // 3. 최대 포인트 수 제한 (균등 간격 — 확률 샘플링보다 윤곽이 안정적)
   if (sampled.length > maxPointsPerStroke) {
-    const ratio = maxPointsPerStroke / sampled.length;
-    const newSampled: SubmitPoint[] = [sampled[0]];
-    
-    for (let i = 1; i < sampled.length - 1; i++) {
-      if (Math.random() < ratio) {
-        newSampled.push(sampled[i]);
-      }
+    const n = sampled.length;
+    const newSampled: SubmitPoint[] = [];
+    for (let j = 0; j < maxPointsPerStroke; j++) {
+      const idx = j === maxPointsPerStroke - 1 ? n - 1 : Math.round((j * (n - 1)) / (maxPointsPerStroke - 1));
+      newSampled.push(sampled[idx]!);
     }
-    
-    newSampled.push(sampled[sampled.length - 1]);
     sampled = newSampled;
   }
   
-  // 4. 값 정규화 (정수 반올림). pressure는 렌더링에 쓰이지 않으므로 전송에서 제외.
-  return sampled.map(p => ({
-    x: Math.round(p.x),
-    y: Math.round(p.y),
+  // 4. 값 정규화 (소수 1자리 — 픽셀 격자 정수 반올림으로 인한 톱니 완화)
+  const rq = (v: number) => Math.round(v * 10) / 10;
+  return sampled.map((p) => ({
+    x: rq(p.x),
+    y: rq(p.y),
     t: Math.round(p.t),
   }));
 }

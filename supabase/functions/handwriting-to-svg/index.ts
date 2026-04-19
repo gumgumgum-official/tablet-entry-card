@@ -9,6 +9,12 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
+import {
+  INK_PATH_PRECISION,
+  INK_SVG_STROKE_ATTRS,
+  pointsToQuadraticPathD,
+  smoothStrokeInk,
+} from "../_shared/inkGeometry.ts";
 
 // ============================================================================
 // Types
@@ -18,7 +24,7 @@ interface StrokePoint {
   x: number;
   y: number;
   t: number;
-  /** pressure — 하위호환 목적의 optional 필드. 현재 렌더링에서는 사용하지 않음 */
+  /** 없으면 0으로 처리 (최신 태블릿 페이로드는 pressure 미전송) */
   p?: number;
 }
 
@@ -69,23 +75,7 @@ function round(value: number, precision: number = 2): number {
 }
 
 /**
- * Strokes를 고정 폭 polyline path로 변환.
- * pressure는 완전히 무시되며, 모든 선은 baseStrokeWidth로 동일한 굵기로 렌더된다.
- * 캔버스 측 ctx(lineWidth 고정, lineCap/lineJoin = round)와 1:1로 동일하게 보이도록 맞춤.
- */
-function strokeToPolylinePath(stroke: StrokePoint[]): string {
-  if (stroke.length < 2) return "";
-
-  const parts: string[] = [];
-  parts.push(`M ${round(stroke[0].x)} ${round(stroke[0].y)}`);
-  for (let i = 1; i < stroke.length; i++) {
-    parts.push(`L ${round(stroke[i].x)} ${round(stroke[i].y)}`);
-  }
-  return parts.join(" ");
-}
-
-/**
- * Strokes를 SVG 문자열로 변환
+ * Strokes를 SVG 문자열로 변환 (캔버스 좌표계와 동일한 full viewBox + Quadratic stroke)
  */
 function strokesToSVG(
   strokes: StrokePoint[][],
@@ -98,31 +88,34 @@ function strokesToSVG(
     return createEmptySVG(canvas.width, canvas.height);
   }
 
-  // Full-canvas viewBox (same coords as tablet). Tight bbox + width/height=canvas
-  // changed aspect ratio; object-fit:fill etc. then non-uniformly scales strokes.
   const viewBoxX = 0;
   const viewBoxY = 0;
   const viewBoxWidth = canvas.width;
   const viewBoxHeight = canvas.height;
 
-  // SVG 요소 생성 (고정 폭 polyline + 단일 점은 circle)
-  const svgElements: string[] = [];
+  const pathElements: string[] = [];
 
   for (const stroke of strokes) {
     if (stroke.length === 0) continue;
 
     if (stroke.length === 1) {
-      const only = stroke[0];
-      svgElements.push(
-        `    <circle cx="${round(only.x)}" cy="${round(only.y)}" r="${round(baseStrokeWidth / 2)}" fill="${color}"/>`
+      const only = stroke[0]!;
+      const cx = round(only.x, INK_PATH_PRECISION);
+      const cy = round(only.y, INK_PATH_PRECISION);
+      const r = round(baseStrokeWidth / 2, INK_PATH_PRECISION);
+      pathElements.push(
+        `    <circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"/>`
       );
       continue;
     }
 
-    const pathData = strokeToPolylinePath(stroke);
+    const chaikinPasses = stroke.length >= 8 ? 1 : 0;
+    const prepared =
+      chaikinPasses > 0 ? smoothStrokeInk(stroke, chaikinPasses) : stroke;
+    const pathData = pointsToQuadraticPathD(prepared, INK_PATH_PRECISION);
     if (pathData) {
-      svgElements.push(
-        `    <path d="${pathData}" fill="none" stroke="${color}" stroke-width="${baseStrokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`
+      pathElements.push(
+        `    <path d="${pathData}" fill="none" stroke="${color}" stroke-width="${baseStrokeWidth}" ${INK_SVG_STROKE_ATTRS}/>`
       );
     }
   }
@@ -130,7 +123,7 @@ function strokesToSVG(
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}" width="${canvas.width}" height="${canvas.height}" preserveAspectRatio="xMidYMid meet">
   <g id="strokes">
-${svgElements.join("\n")}
+${pathElements.join("\n")}
   </g>
 </svg>`;
 }

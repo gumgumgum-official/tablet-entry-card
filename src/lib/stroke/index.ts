@@ -34,3 +34,19 @@ export {
   uploadStrokeData,
   ensureStorageBucket,
 } from "./upload-service";
+
+// Ink smoothing / canvas redraw
+export {
+  smoothStroke,
+  smoothStrokes,
+  pointsToQuadraticPathD,
+  INK_PATH_PRECISION,
+  type SmoothStrokeOptions,
+} from "./smoothStroke";
+export { redrawInkStrokes, type RedrawInkOptions } from "./canvasInk";
+export {
+  INK_LINE_CAP,
+  INK_LINE_JOIN,
+  INK_MITER_LIMIT,
+  INK_SVG_STROKE_ATTRS,
+} from "./inkStyle";

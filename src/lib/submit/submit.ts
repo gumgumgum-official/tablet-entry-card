@@ -14,6 +14,7 @@ import {
 import { getClientId } from './client-id';
 import { generateIdempotencyKey } from './idempotency';
 import { optimizeStrokes, getOptimizeStats } from './optimizer';
+import { smoothStrokes } from '@/lib/stroke/smoothStroke';
 import { addToQueue } from './queue';
 
 /** 타임아웃 Promise */
@@ -134,8 +135,9 @@ export async function submitStrokes(
     };
   }
   
-  // 2. 최적화
-  const optimized = optimizeStrokes(strokes);
+  // 2. 경량 스무딩(큐·구버전 페이로드 보정) 후 최적화
+  const prepared = smoothStrokes(strokes, { chaikinIterations: 1 });
+  const optimized = optimizeStrokes(prepared);
   const stats = getOptimizeStats(strokes, optimized);
   
   console.log('[Submit] Optimize stats:', {

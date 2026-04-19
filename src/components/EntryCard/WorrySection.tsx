@@ -11,6 +11,13 @@ import { requestMonitorAssignment } from "@/lib/gum-server/requestMonitor";
 import { coerceDisplaySeq } from "@/lib/gum-server/displaySeq";
 import { isCanvasPointerStartAllowed } from "@/lib/canvasPointer";
 import { densifySegmentToSubmitPoints } from "@/lib/strokeDensify";
+import { smoothStroke } from "@/lib/stroke/smoothStroke";
+import { redrawInkStrokes } from "@/lib/stroke/canvasInk";
+import {
+  INK_LINE_CAP,
+  INK_LINE_JOIN,
+  INK_MITER_LIMIT,
+} from "@/lib/stroke/inkStyle";
 
 interface WorrySectionProps {
   sessionId?: string;
@@ -135,8 +142,9 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         const curMode = modeRef.current;
         ctx.globalCompositeOperation = curMode === "erase" ? "destination-out" : "source-over";
         ctx.strokeStyle = STROKE_COLOR;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
+        ctx.lineCap = INK_LINE_CAP;
+        ctx.lineJoin = INK_LINE_JOIN;
+        ctx.miterLimit = INK_MITER_LIMIT;
 
         const coalesced = "getCoalescedEvents" in e ? e.getCoalescedEvents() : null;
         const samples = coalesced && coalesced.length > 0 ? coalesced : [e];
@@ -191,9 +199,21 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         const curMode = modeRef.current;
 
         if (curMode === "draw") {
+          const ctxUp = ctxRef.current;
           if (currentStrokeRef.current.length > 0) {
-            strokesRef.current.push(currentStrokeRef.current);
+            const smoothed = smoothStroke(currentStrokeRef.current, {
+              chaikinIterations: 2,
+            });
+            strokesRef.current.push(smoothed);
             currentStrokeRef.current = [];
+            if (ctxUp) {
+              redrawInkStrokes(ctxUp, strokesRef.current, {
+                canvasWidth,
+                canvasHeight,
+                lineWidth: STROKE_WIDTH,
+                color: STROKE_COLOR,
+              });
+            }
           }
         } else if (curMode === "erase") {
           const erasePoints = currentStrokeRef.current;
@@ -212,22 +232,12 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
             const ctx = ctxRef.current;
             if (ctx) {
-              ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-              ctx.globalCompositeOperation = "source-over";
-              ctx.strokeStyle = STROKE_COLOR;
-              ctx.lineWidth = STROKE_WIDTH;
-              ctx.lineCap = "round";
-              ctx.lineJoin = "round";
-
-              for (const stroke of strokesRef.current) {
-                if (stroke.length < 2) continue;
-                ctx.beginPath();
-                ctx.moveTo(stroke[0].x, stroke[0].y);
-                for (let i = 1; i < stroke.length; i++) {
-                  ctx.lineTo(stroke[i].x, stroke[i].y);
-                }
-                ctx.stroke();
-              }
+              redrawInkStrokes(ctx, strokesRef.current, {
+                canvasWidth,
+                canvasHeight,
+                lineWidth: STROKE_WIDTH,
+                color: STROKE_COLOR,
+              });
             }
           }
           currentStrokeRef.current = [];
