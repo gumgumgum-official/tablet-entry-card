@@ -14,13 +14,9 @@ const NameField = () => {
   const hasContentRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const canvasRectRef = useRef<DOMRect | null>(null);
-  const [isErasing, setIsErasing] = useState(false);
-  const isErasingRef = useRef(false);
-
-  useEffect(() => { isErasingRef.current = isErasing; }, [isErasing]);
 
   const canvasWidth = 580;
-  const canvasHeight = 32;
+  const canvasHeight = 66;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -67,11 +63,10 @@ const NameField = () => {
 
       const x = (e.clientX - rect.left) * (canvasWidth / rect.width);
       const y = (e.clientY - rect.top) * (canvasHeight / rect.height);
-      const erase = isErasingRef.current;
 
-      ctx.globalCompositeOperation = erase ? "destination-out" : "source-over";
+      ctx.globalCompositeOperation = "source-over";
       ctx.strokeStyle = STROKE_COLOR;
-      ctx.lineWidth = erase ? STROKE_WIDTH * 2 : STROKE_WIDTH;
+      ctx.lineWidth = STROKE_WIDTH;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
 
@@ -130,7 +125,7 @@ const NameField = () => {
   }, []);
 
   return (
-    <div className="flex items-center" style={{ marginTop: "17px" }}>
+    <div className="flex items-center">
       <span
         className="text-foreground"
         style={{
@@ -150,8 +145,8 @@ const NameField = () => {
         {/* Placeholder */}
         {!hasContent && (
           <span
-            className="absolute pointer-events-none text-muted-foreground/40 select-none"
-            style={{ left: "0", bottom: "6px", fontSize: "16px" }}
+            className="absolute inset-0 flex items-center justify-center pointer-events-none text-muted-foreground/40 select-none"
+            style={{ fontSize: "16px" }}
           >
             여기에 이름을 적어주세요
           </span>
@@ -171,30 +166,15 @@ const NameField = () => {
           }}
         />
 
-        {/* Eraser / Clear Buttons */}
         {hasContent && (
-          <>
-            <button
-              onClick={() => setIsErasing((prev) => !prev)}
-              className={`absolute z-10 px-2 py-1 rounded text-xs transition-all ${
-                isErasing
-                  ? "bg-muted text-foreground"
-                  : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/20"
-              }`}
-              style={{ right: "-110px", top: "50%", transform: "translateY(-50%)" }}
-              type="button"
-            >
-              {isErasing ? "부분 지우개 ON" : "부분 지우개"}
-            </button>
-            <button
-              onClick={clearCanvas}
-              className="absolute z-10 px-2 py-1 rounded text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/20 transition-all"
-              style={{ right: "-50px", top: "50%", transform: "translateY(-50%)" }}
-              type="button"
-            >
-              전체 지우기
-            </button>
-          </>
+          <button
+            onClick={clearCanvas}
+            className="absolute z-10 px-2 py-1 rounded text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/20 transition-all"
+            style={{ right: "-50px", top: "50%", transform: "translateY(-50%)" }}
+            type="button"
+          >
+            전체 지우기
+          </button>
         )}
       </div>
     </div>

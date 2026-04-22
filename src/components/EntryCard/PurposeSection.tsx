@@ -94,15 +94,6 @@ const PurposeSection = ({
           checked={business}
           onChange={onBusinessChange}
         />
-      </div>
-
-      <div
-        className="flex items-center"
-        style={{
-          gap: "8px",
-          marginTop: "12px",
-        }}
-      >
         <CheckboxItem
           label="걱정 해소 (Worry-Free Entry)"
           checked={worryFree}

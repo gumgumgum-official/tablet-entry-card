@@ -192,7 +192,7 @@ const EntryCardCanvas = () => {
         >
           <HeaderSection />
 
-          <div style={{ marginTop: "17px" }}>
+          <div style={{ marginTop: "6px" }}>
             <NameField />
           </div>
 
@@ -211,7 +211,7 @@ const EntryCardCanvas = () => {
             />
           </div>
 
-          <div style={{ marginTop: "23px" }}>
+          <div style={{ marginTop: "12px" }}>
             <WorrySection
               ref={worrySectionRef}
               sessionId={sessionId}
@@ -219,7 +219,7 @@ const EntryCardCanvas = () => {
             />
           </div>
 
-          <div style={{ marginTop: "25px" }}>
+          <div style={{ marginTop: "12px" }}>
             <AgreementSection
               agreement1={formData.agreement1}
               agreement2={formData.agreement2}
@@ -230,7 +230,7 @@ const EntryCardCanvas = () => {
             />
           </div>
 
-          <div style={{ marginTop: "36px" }}>
+          <div style={{ marginTop: "16px" }}>
             <SignatureSection />
           </div>
         </div>

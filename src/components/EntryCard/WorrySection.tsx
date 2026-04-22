@@ -74,8 +74,8 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
     }, [hasContent, isSubmitting, onCanSubmitChange]);
 
     // 캔버스 크기
-    const canvasWidth = 720;
-    const canvasHeight = 180;
+    const canvasWidth = 960;
+    const canvasHeight = 240;
 
     // 캔버스 초기화
     useEffect(() => {
@@ -449,7 +449,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
               top: "0",
               width: `${canvasWidth}px`,
               height: `${canvasHeight}px`,
-              cursor: isSubmitting ? "not-allowed" : "crosshair",
+              cursor: isSubmitting ? "not-allowed" : mode === "erase" ? "cell" : "crosshair",
               opacity: isSubmitting ? 0.7 : 1,
               touchAction: "none",
               willChange: "contents",
@@ -458,11 +458,11 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
           {hasContent && !isSubmitting && (
             <div
-              className="absolute z-10 top-2 right-2 flex flex-row-reverse items-center gap-4"
+              className="absolute z-10 top-2 right-2 flex flex-row-reverse items-center gap-2"
             >
               <button
                 onClick={clearCanvas}
-                className="px-2 py-1 rounded text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/20 transition-all shrink-0"
+                className="px-2.5 py-1 rounded-md text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/20 transition-all shrink-0"
                 type="button"
               >
                 전체 지우기
@@ -471,14 +471,21 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
                 onClick={() =>
                   setMode((prev) => (prev === "draw" ? "erase" : "draw"))
                 }
-                className={`px-2 py-1 rounded text-xs transition-all shrink-0 ${
+                aria-pressed={mode === "erase"}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all shrink-0 ${
                   mode === "erase"
-                    ? "bg-muted text-foreground"
+                    ? "bg-foreground text-background shadow-sm"
                     : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/20"
                 }`}
                 type="button"
               >
-                {mode === "erase" ? "부분 지우개 ON" : "부분 지우개"}
+                <span
+                  aria-hidden
+                  className={`size-1.5 rounded-full transition-colors ${
+                    mode === "erase" ? "bg-background" : "bg-muted-foreground/40"
+                  }`}
+                />
+                부분 지우개
               </button>
             </div>
           )}
@@ -487,7 +494,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         <div
           className="bg-border"
           style={{
-            width: "720px",
+            width: `${canvasWidth}px`,
             height: "1px",
           }}
         />

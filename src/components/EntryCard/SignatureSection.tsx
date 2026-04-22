@@ -16,10 +16,6 @@ const SignatureSection = () => {
   const hasContentRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const canvasRectRef = useRef<DOMRect | null>(null);
-  const [isErasing, setIsErasing] = useState(false);
-  const isErasingRef = useRef(false);
-
-  useEffect(() => { isErasingRef.current = isErasing; }, [isErasing]);
 
   const canvasWidth = 300;
   const canvasHeight = 48;
@@ -69,11 +65,10 @@ const SignatureSection = () => {
 
       const x = (e.clientX - rect.left) * (canvasWidth / rect.width);
       const y = (e.clientY - rect.top) * (canvasHeight / rect.height);
-      const erase = isErasingRef.current;
 
-      ctx.globalCompositeOperation = erase ? "destination-out" : "source-over";
+      ctx.globalCompositeOperation = "source-over";
       ctx.strokeStyle = STROKE_COLOR;
-      ctx.lineWidth = erase ? STROKE_WIDTH * 2 : STROKE_WIDTH;
+      ctx.lineWidth = STROKE_WIDTH;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
 
@@ -155,10 +150,8 @@ const SignatureSection = () => {
           {/* Placeholder */}
           {!hasContent && (
             <span
-              className="absolute pointer-events-none text-muted-foreground/40 select-none"
+              className="absolute inset-0 flex items-center justify-center pointer-events-none text-muted-foreground/40 select-none"
               style={{
-                left: "0",
-                bottom: "8px",
                 fontSize: "16px",
               }}
             >
@@ -180,38 +173,20 @@ const SignatureSection = () => {
             }}
           />
 
-          {/* Eraser / Clear Buttons */}
+          {/* Clear Button */}
           {hasContent && (
-            <>
-              <button
-                onClick={() => setIsErasing((prev) => !prev)}
-                className={`absolute z-10 px-2 py-1 rounded text-xs transition-all ${
-                  isErasing
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/20"
-                }`}
-                style={{
-                  right: "-120px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                }}
-                type="button"
-              >
-                {isErasing ? "부분 지우개 ON" : "부분 지우개"}
-              </button>
-              <button
-                onClick={clearCanvas}
-                className="absolute z-10 px-2 py-1 rounded text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/20 transition-all"
-                style={{
-                  right: "-60px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                }}
-                type="button"
-              >
-                전체 지우기
-              </button>
-            </>
+            <button
+              onClick={clearCanvas}
+              className="absolute z-10 px-2 py-1 rounded text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/20 transition-all"
+              style={{
+                right: "-60px",
+                top: "50%",
+                transform: "translateY(-50%)",
+              }}
+              type="button"
+            >
+              전체 지우기
+            </button>
           )}
         </div>
       </div>
