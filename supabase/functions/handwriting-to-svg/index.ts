@@ -14,6 +14,7 @@ import {
   INK_SVG_STROKE_ATTRS,
   pointsToQuadraticPathD,
   smoothStrokeInk,
+  strokePolylineToFilledPathD,
 } from "../_shared/inkGeometry.ts";
 
 // ============================================================================
@@ -93,7 +94,10 @@ function strokesToSVG(
   const viewBoxWidth = canvas.width;
   const viewBoxHeight = canvas.height;
 
-  const pathElements: string[] = [];
+  /** 화면·래스터용 stroke path */
+  const displayPaths: string[] = [];
+  /** Stage3 Extrude용 닫힌 fill (display:none — 래스터에 안 그려지게) */
+  const extrudePaths: string[] = [];
 
   for (const stroke of strokes) {
     if (stroke.length === 0) continue;
@@ -103,9 +107,9 @@ function strokesToSVG(
       const cx = round(only.x, INK_PATH_PRECISION);
       const cy = round(only.y, INK_PATH_PRECISION);
       const r = round(baseStrokeWidth / 2, INK_PATH_PRECISION);
-      pathElements.push(
-        `    <circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"/>`
-      );
+      const circle = `    <circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"/>`;
+      displayPaths.push(circle);
+      extrudePaths.push(circle);
       continue;
     }
 
@@ -114,8 +118,14 @@ function strokesToSVG(
       chaikinPasses > 0 ? smoothStrokeInk(stroke, chaikinPasses) : stroke;
     const pathData = pointsToQuadraticPathD(prepared, INK_PATH_PRECISION);
     if (pathData) {
-      pathElements.push(
+      displayPaths.push(
         `    <path d="${pathData}" fill="none" stroke="${color}" stroke-width="${baseStrokeWidth}" ${INK_SVG_STROKE_ATTRS}/>`
+      );
+    }
+    const fillD = strokePolylineToFilledPathD(prepared, baseStrokeWidth);
+    if (fillD) {
+      extrudePaths.push(
+        `    <path d="${fillD}" fill="${color}" stroke="none"/>`
       );
     }
   }
@@ -123,7 +133,10 @@ function strokesToSVG(
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}" width="${canvas.width}" height="${canvas.height}" preserveAspectRatio="xMidYMid meet">
   <g id="strokes">
-${pathElements.join("\n")}
+${displayPaths.join("\n")}
+  </g>
+  <g id="extrude-outlines" data-handwriting-extrude="true" style="display:none" aria-hidden="true">
+${extrudePaths.join("\n")}
   </g>
 </svg>`;
 }
@@ -132,6 +145,7 @@ function createEmptySVG(width: number, height: number): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet">
   <g id="strokes"></g>
+  <g id="extrude-outlines" data-handwriting-extrude="true" style="display:none" aria-hidden="true"></g>
 </svg>`;
 }
 
