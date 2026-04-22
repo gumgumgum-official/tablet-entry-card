@@ -130,7 +130,7 @@ const NameField = () => {
   }, []);
 
   return (
-    <div className="absolute flex items-center" style={{ left: "64px", top: "128px" }}>
+    <div className="flex items-center" style={{ marginTop: "17px" }}>
       <span
         className="text-foreground"
         style={{

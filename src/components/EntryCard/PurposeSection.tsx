@@ -33,6 +33,7 @@ const CheckboxItem = ({ label, checked, onChange }: CheckboxItemProps) => (
       style={{
         fontSize: "16px",
         fontWeight: 500,
+        lineHeight: "24px",
         whiteSpace: "nowrap",
       }}
     >
@@ -54,27 +55,23 @@ const PurposeSection = ({
   onWorryFreeChange,
 }: PurposeSectionProps) => {
   return (
-    <>
-      {/* Section Title */}
+    <div className="flex flex-col">
       <h2
-        className="absolute text-foreground"
+        className="text-foreground"
         style={{
-          left: "64px",
-          top: "172px",
           fontSize: "18px",
           fontWeight: 600,
+          lineHeight: "27px",
         }}
       >
         입국목적 (Purpose of Visit):
       </h2>
 
-      {/* Checkboxes Row */}
       <div
-        className="absolute flex flex-wrap"
+        className="flex flex-wrap"
         style={{
-          left: "64px",
-          top: "204px",
           gap: "24px",
+          marginTop: "5px",
         }}
       >
         <CheckboxItem
@@ -99,13 +96,11 @@ const PurposeSection = ({
         />
       </div>
 
-      {/* Second Row - Worry Free with checkmark */}
       <div
-        className="absolute flex items-center"
+        className="flex items-center"
         style={{
-          left: "64px",
-          top: "240px",
           gap: "8px",
+          marginTop: "12px",
         }}
       >
         <CheckboxItem
@@ -115,17 +110,15 @@ const PurposeSection = ({
         />
       </div>
 
-      {/* Horizontal divider */}
       <div
-        className="absolute bg-border"
+        className="bg-border"
         style={{
-          left: "64px",
-          top: "276px",
           width: "720px",
           height: "1px",
+          marginTop: "12px",
         }}
       />
-    </>
+    </div>
   );
 };
 

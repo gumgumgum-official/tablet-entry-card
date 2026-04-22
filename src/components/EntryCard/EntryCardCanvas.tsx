@@ -171,47 +171,71 @@ const EntryCardCanvas = () => {
             transformOrigin: "top left",
           }}
         >
-        {/* Header */}
-        <HeaderSection />
+        {/*
+          Autolayout: 모든 폼 섹션을 하나의 flex-col 스택으로 관리.
+          카드 상단에 absolute 앵커(left 64 / top 36)만 걸고, 섹션 간 간격은 marginTop으로 조절.
+          원본 좌표 매핑:
+            Header bottom 111 → NameField top 128 (mt 17)
+            NameField bottom 160 → Purpose top 172 (mt 12)
+            Purpose bottom 277 → Worry top 300 (mt 23)
+            Worry bottom 503 → Agreement top 528 (mt 25)
+            Agreement bottom ~672 → Signature top 708 (mt 36)
+        */}
+        <div
+          style={{
+            position: "absolute",
+            left: "64px",
+            top: "36px",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <HeaderSection />
 
-        {/* Name Field */}
-        <NameField />
+          <div style={{ marginTop: "17px" }}>
+            <NameField />
+          </div>
 
-        {/* Purpose Section */}
-        <PurposeSection
-          tourism={formData.purposeTourism}
-          study={formData.purposeStudy}
-          employment={formData.purposeEmployment}
-          business={formData.purposeBusiness}
-          worryFree={formData.purposeWorryFree}
-          onTourismChange={(value) => updateField("purposeTourism", value)}
-          onStudyChange={(value) => updateField("purposeStudy", value)}
-          onEmploymentChange={(value) => updateField("purposeEmployment", value)}
-          onBusinessChange={(value) => updateField("purposeBusiness", value)}
-          onWorryFreeChange={(value) => updateField("purposeWorryFree", value)}
-        />
+          <div style={{ marginTop: "12px" }}>
+            <PurposeSection
+              tourism={formData.purposeTourism}
+              study={formData.purposeStudy}
+              employment={formData.purposeEmployment}
+              business={formData.purposeBusiness}
+              worryFree={formData.purposeWorryFree}
+              onTourismChange={(value) => updateField("purposeTourism", value)}
+              onStudyChange={(value) => updateField("purposeStudy", value)}
+              onEmploymentChange={(value) => updateField("purposeEmployment", value)}
+              onBusinessChange={(value) => updateField("purposeBusiness", value)}
+              onWorryFreeChange={(value) => updateField("purposeWorryFree", value)}
+            />
+          </div>
 
-        {/* Worry Section */}
-        <WorrySection
-          ref={worrySectionRef}
-          sessionId={sessionId}
-          onCanSubmitChange={handleWorryCanSubmitChange}
-        />
+          <div style={{ marginTop: "23px" }}>
+            <WorrySection
+              ref={worrySectionRef}
+              sessionId={sessionId}
+              onCanSubmitChange={handleWorryCanSubmitChange}
+            />
+          </div>
 
-        {/* Agreement Section */}
-        <AgreementSection
-          agreement1={formData.agreement1}
-          agreement2={formData.agreement2}
-          agreement3={formData.agreement3}
-          onAgreement1Change={(value) => updateField("agreement1", value)}
-          onAgreement2Change={(value) => updateField("agreement2", value)}
-          onAgreement3Change={(value) => updateField("agreement3", value)}
-        />
+          <div style={{ marginTop: "25px" }}>
+            <AgreementSection
+              agreement1={formData.agreement1}
+              agreement2={formData.agreement2}
+              agreement3={formData.agreement3}
+              onAgreement1Change={(value) => updateField("agreement1", value)}
+              onAgreement2Change={(value) => updateField("agreement2", value)}
+              onAgreement3Change={(value) => updateField("agreement3", value)}
+            />
+          </div>
 
-        {/* Signature Section */}
-        <SignatureSection />
+          <div style={{ marginTop: "36px" }}>
+            <SignatureSection />
+          </div>
+        </div>
 
-        {/* Asset Placeholders - 입국심사 버튼 포함 */}
+        {/* 카드 위 장식 일러스트 + 입국심사 버튼. 오토레이아웃 흐름 밖에서 absolute로 떠 있음 */}
         <AssetPlaceholders
           formData={formData}
           onSubmit={handleImmigrationSubmit}

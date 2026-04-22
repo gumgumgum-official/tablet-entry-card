@@ -3,7 +3,6 @@ import { format } from "date-fns";
 import { isCanvasPointerStartAllowed } from "@/lib/canvasPointer";
 import { densifySegmentToSubmitPoints } from "@/lib/strokeDensify";
 
-const TOP_OFFSET = 80;
 const STROKE_WIDTH = 2.5;
 const DENSIFY_MAX_STEP = STROKE_WIDTH * 0.35;
 const STROKE_COLOR = "#2E2E2E";
@@ -133,9 +132,8 @@ const SignatureSection = () => {
   }, []);
 
   return (
-    <>
-      {/* Signature Field */}
-      <div className="absolute flex items-center" style={{ left: "64px", top: `${628 + TOP_OFFSET}px` }}>
+    <div className="flex flex-col" style={{ gap: "8px" }}>
+      <div className="flex items-center">
         <span
           className="text-foreground"
           style={{
@@ -218,8 +216,7 @@ const SignatureSection = () => {
         </div>
       </div>
 
-      {/* Date Field */}
-      <div className="absolute flex items-center" style={{ left: "64px", top: `${684 + TOP_OFFSET}px` }}>
+      <div className="flex items-center">
         <span
           className="text-foreground"
           style={{
@@ -240,7 +237,7 @@ const SignatureSection = () => {
           {date}
         </span>
       </div>
-    </>
+    </div>
   );
 };
 

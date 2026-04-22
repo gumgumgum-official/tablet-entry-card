@@ -77,9 +77,6 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
     const canvasWidth = 720;
     const canvasHeight = 180;
 
-    // 위치 오프셋
-    const TOP_OFFSET = 0;
-
     // 캔버스 초기화
     useEffect(() => {
       const canvas = canvasRef.current;
@@ -415,13 +412,10 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
     }), [submitStatus, hasContent, isSubmitting, handleSubmit, clearCanvas]);
 
     return (
-      <>
-        {/* Description Text */}
+      <div className="flex flex-col">
         <p
-          className="absolute text-foreground"
+          className="text-foreground"
           style={{
-            left: "64px",
-            top: "300px",
             fontSize: "15px",
             lineHeight: "22px",
             whiteSpace: "nowrap",
@@ -430,20 +424,15 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
           요즘 당신을 껌딱지처럼 따라다니며 괴롭히는 걱정거리를 아래에 가감없이 적어주세요. 입국 시 모두 압수될 예정입니다.
         </p>
 
-        {/* Canvas Container */}
         <div
-          className="absolute rounded-lg"
+          className="relative rounded-lg"
           style={{
-            left: "64px",
-            top: `${320 + TOP_OFFSET}px`,
             width: `${canvasWidth}px`,
             height: `${canvasHeight}px`,
             touchAction: "none",
             boxShadow: "inset 0 0 0 2px hsl(0 0% 42% / 0.3)",
           }}
         >
-
-          {/* Placeholder */}
           {!hasContent && (
             <span
               className="absolute inset-0 flex items-center justify-center pointer-events-none text-muted-foreground/60 select-none text-[15px]"
@@ -452,7 +441,6 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
             </span>
           )}
 
-          {/* Drawing Canvas — 이벤트는 네이티브 addEventListener로 처리 */}
           <canvas
             ref={canvasRef}
             className="absolute"
@@ -468,7 +456,6 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
             }}
           />
 
-          {/* Eraser / Clear Buttons */}
           {hasContent && !isSubmitting && (
             <div
               className="absolute z-10 top-2 right-2 flex flex-row-reverse items-center gap-4"
@@ -497,17 +484,14 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
           )}
         </div>
 
-        {/* Horizontal divider */}
         <div
-          className="absolute bg-border"
+          className="bg-border"
           style={{
-            left: "64px",
-            top: `${502 + TOP_OFFSET}px`,
             width: "720px",
             height: "1px",
           }}
         />
-      </>
+      </div>
     );
   }
 );

@@ -1,12 +1,9 @@
 const HeaderSection = () => {
   return (
-    <>
-      {/* Main Title */}
+    <div className="flex flex-col">
       <h1
-        className="absolute font-semibold text-primary"
+        className="font-semibold text-primary"
         style={{
-          left: "64px",
-          top: "36px",
           fontSize: "32px",
           fontFamily: "'Montserrat', sans-serif",
           fontWeight: 700,
@@ -17,12 +14,9 @@ const HeaderSection = () => {
         GGUMDDI NATION ENTRY CARD
       </h1>
 
-      {/* Korean Subtitle */}
       <h2
-        className="absolute font-semibold text-primary"
+        className="font-semibold text-primary"
         style={{
-          left: "64px",
-          top: "74px",
           fontSize: "20px",
           fontWeight: 600,
           letterSpacing: "0.02em",
@@ -32,18 +26,15 @@ const HeaderSection = () => {
         껌딱지월드 입국신고서
       </h2>
 
-      {/* Horizontal Line under title */}
       <div
-        className="absolute bg-border"
+        className="bg-border"
         style={{
-          left: "64px",
-          top: "110px",
           width: "720px",
           height: "1px",
+          marginTop: "7px",
         }}
       />
-
-    </>
+    </div>
   );
 };
 
