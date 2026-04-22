@@ -80,13 +80,78 @@ function strokeToPathData(
  * Pressure 기반 가변 폭 path 생성 (선택적)
  * stroke-width 속성 대신 filled path로 두께 표현
  */
+function dedupeStrokePoints(
+  points: Stroke["points"],
+  minDistSq: number
+): Stroke["points"] {
+  if (points.length <= 2) return points.map((p) => ({ ...p }));
+  const out: Stroke["points"] = [{ ...points[0]! }];
+  for (let i = 1; i < points.length; i++) {
+    const p = points[i]!;
+    const q = out[out.length - 1]!;
+    const dx = p.x - q.x;
+    const dy = p.y - q.y;
+    if (dx * dx + dy * dy < minDistSq) continue;
+    out.push({ ...p });
+  }
+  if (out.length < 2) {
+    return [{ ...points[0]! }, { ...points[points.length - 1]! }];
+  }
+  return out;
+}
+
+function safeUnitNormal(dx: number, dy: number): { nx: number; ny: number } {
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (len <= 1e-6) return { nx: 0, ny: -1 };
+  return { nx: -dy / len, ny: dx / len };
+}
+
+function joinedNormalAt(
+  points: Stroke["points"],
+  i: number
+): { nx: number; ny: number; miterScale: number } {
+  if (points.length <= 1) return { nx: 0, ny: -1, miterScale: 1 };
+  if (i <= 0) {
+    const p = points[0]!;
+    const n = points[1]!;
+    const u = safeUnitNormal(n.x - p.x, n.y - p.y);
+    return { ...u, miterScale: 1 };
+  }
+  if (i >= points.length - 1) {
+    const p = points[points.length - 2]!;
+    const n = points[points.length - 1]!;
+    const u = safeUnitNormal(n.x - p.x, n.y - p.y);
+    return { ...u, miterScale: 1 };
+  }
+
+  const prev = points[i - 1]!;
+  const curr = points[i]!;
+  const next = points[i + 1]!;
+  const n0 = safeUnitNormal(curr.x - prev.x, curr.y - prev.y);
+  const n1 = safeUnitNormal(next.x - curr.x, next.y - curr.y);
+  let jx = n0.nx + n1.nx;
+  let jy = n0.ny + n1.ny;
+  const jLen = Math.sqrt(jx * jx + jy * jy);
+  if (jLen <= 1e-6) return { nx: n1.nx, ny: n1.ny, miterScale: 1 };
+  jx /= jLen;
+  jy /= jLen;
+
+  const dot = Math.abs(jx * n1.nx + jy * n1.ny);
+  const miterScale = Math.min(2.2, 1 / Math.max(dot, 0.45));
+  return { nx: jx, ny: jy, miterScale };
+}
+
 function strokeToVariableWidthPath(
   stroke: Stroke,
   options: SVGOptions
 ): string {
-  const { points } = stroke;
+  const { points: rawPoints } = stroke;
   const { baseStrokeWidth, pressureMultiplier, precision } = options;
 
+  if (rawPoints.length < 2) return "";
+
+  const minDist = Math.max(baseStrokeWidth * 0.12, 0.5);
+  const points = dedupeStrokePoints(rawPoints, minDist * minDist);
   if (points.length < 2) return "";
 
   // 상단 경계와 하단 경계를 따로 계산
@@ -95,39 +160,39 @@ function strokeToVariableWidthPath(
 
   for (let i = 0; i < points.length; i++) {
     const point = points[i];
-    const width = (baseStrokeWidth + point.pressure * pressureMultiplier) / 2;
+    const pr = Number.isFinite(point.pressure) ? point.pressure : 0;
+    let width = (baseStrokeWidth + pr * pressureMultiplier) / 2;
 
-    // 방향 벡터 계산
-    let dx: number, dy: number;
-    if (i === 0) {
-      dx = points[1].x - point.x;
-      dy = points[1].y - point.y;
-    } else if (i === points.length - 1) {
-      dx = point.x - points[i - 1].x;
-      dy = point.y - points[i - 1].y;
-    } else {
-      dx = points[i + 1].x - points[i - 1].x;
-      dy = points[i + 1].y - points[i - 1].y;
+    let prevLen = Number.POSITIVE_INFINITY;
+    let nextLen = Number.POSITIVE_INFINITY;
+    if (i > 0) {
+      const a = points[i - 1]!;
+      const dx0 = point.x - a.x;
+      const dy0 = point.y - a.y;
+      prevLen = Math.sqrt(dx0 * dx0 + dy0 * dy0);
+    }
+    if (i < points.length - 1) {
+      const b = points[i + 1]!;
+      const dx1 = b.x - point.x;
+      const dy1 = b.y - point.y;
+      nextLen = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+    }
+    const segShort = Math.min(prevLen, nextLen);
+    if (Number.isFinite(segShort) && segShort > 1e-6) {
+      const capW = segShort * 0.47;
+      if (width > capW) width = capW;
     }
 
-    // 수직 벡터 (정규화)
-    const length = Math.sqrt(dx * dx + dy * dy);
-    if (length === 0) {
-      upperPath.push({ x: point.x, y: point.y - width });
-      lowerPath.push({ x: point.x, y: point.y + width });
-    } else {
-      const nx = -dy / length;
-      const ny = dx / length;
-
-      upperPath.push({
-        x: round(point.x + nx * width, precision),
-        y: round(point.y + ny * width, precision),
-      });
-      lowerPath.push({
-        x: round(point.x - nx * width, precision),
-        y: round(point.y - ny * width, precision),
-      });
-    }
+    const join = joinedNormalAt(points, i);
+    const joinW = width * join.miterScale;
+    upperPath.push({
+      x: round(point.x + join.nx * joinW, precision),
+      y: round(point.y + join.ny * joinW, precision),
+    });
+    lowerPath.push({
+      x: round(point.x - join.nx * joinW, precision),
+      y: round(point.y - join.ny * joinW, precision),
+    });
   }
 
   // 상단 → 끝 → 하단(역순) → 시작으로 닫힌 path 생성
@@ -198,29 +263,53 @@ export function strokesToSVG(
   const viewBoxWidth = Math.ceil(bbox.maxX - bbox.minX + padding * 2);
   const viewBoxHeight = Math.ceil(bbox.maxY - bbox.minY + padding * 2);
 
-  // SVG 문자열 생성
-  const pathElements: string[] = [];
+  /** 화면·래스터용 (#strokes) */
+  const displayPaths: string[] = [];
+  /** gum Stage3 Extrude 전용 닫힌 fill (#extrude-outlines, display:none) */
+  const extrudePaths: string[] = [];
 
   for (const stroke of strokes) {
     if (stroke.points.length === 0) continue;
 
     if (useVariableWidth) {
-      // 가변 폭 path (filled)
       const pathData = strokeToVariableWidthPath(stroke, opts);
       if (pathData) {
-        pathElements.push(
-          `  <path d="${pathData}" fill="${stroke.color || strokeColor}" stroke="none"/>`
-        );
+        const row = `  <path d="${pathData}" fill="${stroke.color || strokeColor}" stroke="none"/>`;
+        displayPaths.push(row);
+        extrudePaths.push(row);
       }
     } else {
-      // 고정 폭 path (stroked)
-      const pathData = strokeToPathData(stroke, opts);
-      const avgPressure = stroke.points.reduce((sum, p) => sum + p.pressure, 0) / stroke.points.length;
-      const strokeWidth = baseStrokeWidth + avgPressure * pressureMultiplier;
+      const avgPressure =
+        stroke.points.reduce((sum, p) => sum + p.pressure, 0) /
+        stroke.points.length;
+      const strokeWidth =
+        baseStrokeWidth + avgPressure * pressureMultiplier;
 
+      if (stroke.points.length === 1) {
+        const p = stroke.points[0];
+        const cx = round(p.x, opts.precision);
+        const cy = round(p.y, opts.precision);
+        const r = round(strokeWidth / 2, opts.precision);
+        const circle = `  <circle cx="${cx}" cy="${cy}" r="${r}" fill="${stroke.color || strokeColor}"/>`;
+        displayPaths.push(circle);
+        extrudePaths.push(circle);
+        continue;
+      }
+
+      const pathData = strokeToPathData(stroke, opts);
       if (pathData) {
-        pathElements.push(
+        displayPaths.push(
           `  <path d="${pathData}" fill="none" stroke="${stroke.color || strokeColor}" stroke-width="${strokeWidth.toFixed(1)}" stroke-linecap="round" stroke-linejoin="round"/>`
+        );
+      }
+      const ribbonStroke: Stroke = {
+        ...stroke,
+        points: stroke.points.map((pt) => ({ ...pt, pressure: 0 })),
+      };
+      const fillD = strokeToVariableWidthPath(ribbonStroke, opts);
+      if (fillD) {
+        extrudePaths.push(
+          `  <path d="${fillD}" fill="${stroke.color || strokeColor}" stroke="none"/>`
         );
       }
     }
@@ -229,7 +318,10 @@ export function strokesToSVG(
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}" width="${width}" height="${height}">
   <g id="strokes">
-${pathElements.join("\n")}
+${displayPaths.join("\n")}
+  </g>
+  <g id="extrude-outlines" data-handwriting-extrude="true" style="display:none" aria-hidden="true">
+${extrudePaths.join("\n")}
   </g>
 </svg>`;
 }
@@ -241,6 +333,7 @@ function createEmptySVG(width: number, height: number): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
   <g id="strokes"></g>
+  <g id="extrude-outlines" data-handwriting-extrude="true" style="display:none" aria-hidden="true"></g>
 </svg>`;
 }
 
