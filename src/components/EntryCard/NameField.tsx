@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from "react";
 import { isCanvasPointerStartAllowed } from "@/lib/canvasPointer";
 import { densifySegmentToSubmitPoints } from "@/lib/strokeDensify";
 
@@ -6,7 +6,11 @@ const STROKE_WIDTH = 2;
 const DENSIFY_MAX_STEP = STROKE_WIDTH * 0.35;
 const STROKE_COLOR = "#2E2E2E";
 
-const NameField = () => {
+export interface NameFieldHandle {
+  clear: () => void;
+}
+
+const NameField = forwardRef<NameFieldHandle>((_, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const isDrawingRef = useRef(false);
@@ -124,6 +128,8 @@ const NameField = () => {
     setHasContent(false);
   }, []);
 
+  useImperativeHandle(ref, () => ({ clear: clearCanvas }), [clearCanvas]);
+
   return (
     <div className="flex items-center">
       <span
@@ -179,6 +185,8 @@ const NameField = () => {
       </div>
     </div>
   );
-};
+});
+
+NameField.displayName = "NameField";
 
 export default NameField;

@@ -1,10 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import HeaderSection from "./HeaderSection";
-import NameField from "./NameField";
+import NameField, { type NameFieldHandle } from "./NameField";
 import PurposeSection from "./PurposeSection";
 import WorrySection, { type WorrySectionHandle } from "./WorrySection";
 import AgreementSection from "./AgreementSection";
-import SignatureSection from "./SignatureSection";
+import SignatureSection, { type SignatureSectionHandle } from "./SignatureSection";
 import AssetPlaceholders from "./AssetPlaceholders";
 import backgroundImage from "@/assets/background2.png";
 import { getSessionId } from "@/lib/submit";
@@ -32,8 +32,9 @@ const EntryCardCanvas = () => {
     agreement3: false,
   });
 
-  // WorrySection ref
+  const nameFieldRef = useRef<NameFieldHandle>(null);
   const worrySectionRef = useRef<WorrySectionHandle>(null);
+  const signatureSectionRef = useRef<SignatureSectionHandle>(null);
   const [worryCanSubmit, setWorryCanSubmit] = useState(false);
 
   // Session ID (URL 파라미터 또는 환경변수)
@@ -48,16 +49,13 @@ const EntryCardCanvas = () => {
 
   // 입국심사 버튼 클릭 핸들러
   const handleImmigrationSubmit = useCallback(async () => {
-    if (!worrySectionRef.current) return;
-
-    const canSubmit = worrySectionRef.current.canSubmit();
-    if (!canSubmit) {
-      console.log("[EntryCard] Cannot submit - no content or already submitting");
-      return;
+    if (worrySectionRef.current?.canSubmit()) {
+      await worrySectionRef.current.submit();
     }
 
-    const success = await worrySectionRef.current.submit();
-    console.log("[EntryCard] Submit result:", success);
+    nameFieldRef.current?.clear();
+    worrySectionRef.current?.clear();
+    signatureSectionRef.current?.clear();
   }, []);
 
   const handleWorryCanSubmitChange = useCallback((can: boolean) => {
@@ -193,7 +191,7 @@ const EntryCardCanvas = () => {
           <HeaderSection />
 
           <div style={{ marginTop: "6px" }}>
-            <NameField />
+            <NameField ref={nameFieldRef} />
           </div>
 
           <div style={{ marginTop: "12px" }}>
@@ -231,7 +229,7 @@ const EntryCardCanvas = () => {
           </div>
 
           <div style={{ marginTop: "16px" }}>
-            <SignatureSection />
+            <SignatureSection ref={signatureSectionRef} />
           </div>
         </div>
 

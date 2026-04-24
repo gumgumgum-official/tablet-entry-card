@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { format } from "date-fns";
 import { isCanvasPointerStartAllowed } from "@/lib/canvasPointer";
 import { densifySegmentToSubmitPoints } from "@/lib/strokeDensify";
@@ -7,7 +7,11 @@ const STROKE_WIDTH = 2.5;
 const DENSIFY_MAX_STEP = STROKE_WIDTH * 0.35;
 const STROKE_COLOR = "#2E2E2E";
 
-const SignatureSection = () => {
+export interface SignatureSectionHandle {
+  clear: () => void;
+}
+
+const SignatureSection = forwardRef<SignatureSectionHandle>((_, ref) => {
   const [date] = useState(() => format(new Date(), "yyyy / MM / dd"));
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
@@ -126,6 +130,8 @@ const SignatureSection = () => {
     setHasContent(false);
   }, []);
 
+  useImperativeHandle(ref, () => ({ clear: clearCanvas }), [clearCanvas]);
+
   return (
     <div className="flex flex-col" style={{ gap: "8px" }}>
       <div className="flex items-center">
@@ -214,6 +220,8 @@ const SignatureSection = () => {
       </div>
     </div>
   );
-};
+});
+
+SignatureSection.displayName = "SignatureSection";
 
 export default SignatureSection;
