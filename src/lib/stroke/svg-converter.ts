@@ -25,8 +25,8 @@ function round(value: number, precision: number): number {
 }
 
 /**
- * 스트로크 포인트들을 SVG path d 속성으로 변환
- * Catmull-Rom 스플라인 → Bezier 곡선 변환으로 부드러운 곡선 생성
+ * 스트로크 포인트들을 Catmull-Rom 스플라인(Cubic Bezier)으로 변환
+ * 모든 점을 통과하면서 접선이 연속 → 자연스러운 필기 곡선
  */
 function strokeToPathData(
   stroke: Stroke,
@@ -36,41 +36,32 @@ function strokeToPathData(
   const { precision } = options;
 
   if (points.length === 0) return "";
-  if (points.length === 1) {
-    // 단일 점은 작은 원으로 표현
-    const p = points[0];
-    const x = round(p.x, precision);
-    const y = round(p.y, precision);
-    return `M ${x} ${y} L ${x + 0.1} ${y + 0.1}`;
-  }
 
+  const r = (v: number) => round(v, precision);
   const pathParts: string[] = [];
 
-  // 시작점
-  pathParts.push(`M ${round(points[0].x, precision)} ${round(points[0].y, precision)}`);
+  pathParts.push(`M ${r(points[0].x)} ${r(points[0].y)}`);
 
-  if (points.length === 2) {
-    // 두 점은 직선
-    pathParts.push(`L ${round(points[1].x, precision)} ${round(points[1].y, precision)}`);
-  } else {
-    // 3개 이상: Quadratic Bezier 곡선으로 부드럽게 연결
-    for (let i = 1; i < points.length - 1; i++) {
-      const prev = points[i - 1];
-      const curr = points[i];
-      const next = points[i + 1];
-
-      // 중간점 계산 (부드러운 곡선을 위해)
-      const midX = round((curr.x + next.x) / 2, precision);
-      const midY = round((curr.y + next.y) / 2, precision);
-
-      // Quadratic Bezier: Q controlX controlY, endX endY
-      pathParts.push(`Q ${round(curr.x, precision)} ${round(curr.y, precision)}, ${midX} ${midY}`);
+  if (points.length < 3) {
+    for (let i = 1; i < points.length; i++) {
+      pathParts.push(`L ${r(points[i].x)} ${r(points[i].y)}`);
     }
+    return pathParts.join(" ");
+  }
 
-    // 마지막 점까지 연결
-    const last = points[points.length - 1];
-    const secondLast = points[points.length - 2];
-    pathParts.push(`Q ${round(secondLast.x, precision)} ${round(secondLast.y, precision)}, ${round(last.x, precision)} ${round(last.y, precision)}`);
+  // Catmull-Rom → Cubic Bezier: CP1 = P1 + (P2-P0)/6, CP2 = P2 - (P3-P1)/6
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(0, i - 1)];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[Math.min(points.length - 1, i + 2)];
+
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+    pathParts.push(`C ${r(cp1x)} ${r(cp1y)}, ${r(cp2x)} ${r(cp2y)}, ${r(p2.x)} ${r(p2.y)}`);
   }
 
   return pathParts.join(" ");
@@ -154,34 +145,31 @@ function strokeToVariableWidthPath(
   const points = dedupeStrokePoints(rawPoints, minDist * minDist);
   if (points.length < 2) return "";
 
-  // 상단 경계와 하단 경계를 따로 계산
   const upperPath: { x: number; y: number }[] = [];
   const lowerPath: { x: number; y: number }[] = [];
+  const halfWidths: number[] = [];
 
   for (let i = 0; i < points.length; i++) {
     const point = points[i];
     const pr = Number.isFinite(point.pressure) ? point.pressure : 0;
     let width = (baseStrokeWidth + pr * pressureMultiplier) / 2;
 
-    let prevLen = Number.POSITIVE_INFINITY;
-    let nextLen = Number.POSITIVE_INFINITY;
-    if (i > 0) {
+    // 내부 꺾임점에서만 self-intersection 방지 캡 적용 (끝점은 full width 유지)
+    if (i > 0 && i < points.length - 1) {
       const a = points[i - 1]!;
-      const dx0 = point.x - a.x;
-      const dy0 = point.y - a.y;
-      prevLen = Math.sqrt(dx0 * dx0 + dy0 * dy0);
-    }
-    if (i < points.length - 1) {
       const b = points[i + 1]!;
-      const dx1 = b.x - point.x;
-      const dy1 = b.y - point.y;
-      nextLen = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+      const dx0 = point.x - a.x, dy0 = point.y - a.y;
+      const dx1 = b.x - point.x, dy1 = b.y - point.y;
+      const prevLen = Math.sqrt(dx0 * dx0 + dy0 * dy0);
+      const nextLen = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+      const segShort = Math.min(prevLen, nextLen);
+      if (segShort > 1e-6) {
+        const capW = segShort * 0.47;
+        if (width > capW) width = capW;
+      }
     }
-    const segShort = Math.min(prevLen, nextLen);
-    if (Number.isFinite(segShort) && segShort > 1e-6) {
-      const capW = segShort * 0.47;
-      if (width > capW) width = capW;
-    }
+
+    halfWidths.push(width);
 
     const join = joinedNormalAt(points, i);
     const joinW = width * join.miterScale;
@@ -195,21 +183,24 @@ function strokeToVariableWidthPath(
     });
   }
 
-  // 상단 → 끝 → 하단(역순) → 시작으로 닫힌 path 생성
+  // 상단 → 끝 둥근캡 → 하단(역순) → 시작 둥근캡 → Z
   const pathParts: string[] = [];
+  const startR = round(halfWidths[0]!, precision);
+  const endR = round(halfWidths[halfWidths.length - 1]!, precision);
+  const n = upperPath.length;
 
-  // 상단 경로
   pathParts.push(`M ${upperPath[0].x} ${upperPath[0].y}`);
-  for (let i = 1; i < upperPath.length; i++) {
+  for (let i = 1; i < n; i++) {
     pathParts.push(`L ${upperPath[i].x} ${upperPath[i].y}`);
   }
-
-  // 하단 경로 (역순)
-  for (let i = lowerPath.length - 1; i >= 0; i--) {
+  // 끝점 반원 캡: upper→lower, 행진 방향 기준 오른쪽(바깥) sweep (clockwise=1)
+  pathParts.push(`A ${endR} ${endR} 0 0 1 ${lowerPath[n - 1].x} ${lowerPath[n - 1].y}`);
+  for (let i = n - 2; i >= 0; i--) {
     pathParts.push(`L ${lowerPath[i].x} ${lowerPath[i].y}`);
   }
-
-  pathParts.push("Z"); // 닫힌 path
+  // 시작점 반원 캡: lower→upper, 행진 반대 방향 바깥 sweep (counter-clockwise=0)
+  pathParts.push(`A ${startR} ${startR} 0 0 0 ${upperPath[0].x} ${upperPath[0].y}`);
+  pathParts.push("Z");
 
   return pathParts.join(" ");
 }
