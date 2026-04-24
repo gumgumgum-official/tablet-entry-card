@@ -40,7 +40,7 @@ export interface WorrySectionHandle {
 }
 
 /** 캔버스 필기 선 두께(px). SVG/Edge baseStrokeWidth와 맞춰 화면과 저장본이 일치함 */
-const STROKE_WIDTH = 10;
+const STROKE_WIDTH = 14;
 const STROKE_COLOR = "#2E2E2E";
 /** 빠른 스트로크 시 포인트 간격이 벌어지지 않도록 보간 최대 간격 (px) */
 const DENSIFY_MAX_STEP = STROKE_WIDTH * 0.35;
