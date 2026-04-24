@@ -76,18 +76,13 @@ function rdpSimplify(
 
 /**
  * 적응형 epsilon 계산
- * 스트로크의 바운딩 박스 크기에 따라 epsilon 조정
+ * 화질 유지를 위해 낮은 epsilon 사용 (1~2px 수준)
  */
-function calculateAdaptiveEpsilon(
-  points: StrokePoint[],
-  targetReduction: number = 0.6 // 60% 압축 목표
-): number {
-  if (points.length < 3) return 1;
+function calculateAdaptiveEpsilon(points: StrokePoint[]): number {
+  if (points.length < 3) return 0.5;
 
-  // 바운딩 박스 계산
   let minX = Infinity, maxX = -Infinity;
   let minY = Infinity, maxY = -Infinity;
-
   for (const point of points) {
     minX = Math.min(minX, point.x);
     maxX = Math.max(maxX, point.x);
@@ -99,11 +94,8 @@ function calculateAdaptiveEpsilon(
   const height = maxY - minY;
   const diagonal = Math.sqrt(width * width + height * height);
 
-  // 대각선 길이의 0.5~2% 정도를 epsilon으로 사용
-  // 목표 압축률에 따라 조정
-  const baseEpsilon = diagonal * 0.01 * (targetReduction / 0.5);
-
-  return Math.max(baseEpsilon, 0.5); // 최소 0.5px
+  // 대각선의 0.2% — 고품질 유지하면서 완전 중복 점만 제거
+  return Math.max(diagonal * 0.002, 0.5);
 }
 
 /**
