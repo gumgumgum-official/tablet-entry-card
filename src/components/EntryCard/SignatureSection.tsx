@@ -22,7 +22,7 @@ const SignatureSection = forwardRef<SignatureSectionHandle>((_, ref) => {
   const canvasRectRef = useRef<DOMRect | null>(null);
 
   const canvasWidth = 300;
-  const canvasHeight = 48;
+  const canvasHeight = 72;
 
   useEffect(() => {
     const canvas = canvasRef.current;

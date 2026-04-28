@@ -20,7 +20,7 @@ const NameField = forwardRef<NameFieldHandle>((_, ref) => {
   const canvasRectRef = useRef<DOMRect | null>(null);
 
   const canvasWidth = 580;
-  const canvasHeight = 66;
+  const canvasHeight = 90;
 
   useEffect(() => {
     const canvas = canvasRef.current;
