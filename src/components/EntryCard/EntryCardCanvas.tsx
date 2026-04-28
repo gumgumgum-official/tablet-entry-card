@@ -48,9 +48,10 @@ const EntryCardCanvas = () => {
   };
 
   // 입국심사 버튼 클릭 핸들러
-  const handleImmigrationSubmit = useCallback(async () => {
+  const handleImmigrationSubmit = useCallback(() => {
+    // submit은 내부에서 strokes를 즉시 캡처하므로 await 없이 시작 후 바로 클리어해도 데이터 유실 없음
     if (worrySectionRef.current?.canSubmit()) {
-      await worrySectionRef.current.submit();
+      worrySectionRef.current.submit();
     }
 
     nameFieldRef.current?.clear();
