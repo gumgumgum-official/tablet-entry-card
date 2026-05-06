@@ -45,6 +45,9 @@ const STROKE_COLOR = "#2E2E2E";
 /** 빠른 스트로크 시 포인트 간격이 벌어지지 않도록 보간 최대 간격 (px) */
 const DENSIFY_MAX_STEP = STROKE_WIDTH * 0.35;
 
+const CANVAS_WIDTH = 1000;
+const CANVAS_HEIGHT = 280;
+
 const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
   ({ sessionId, onCanSubmitChange }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -73,10 +76,6 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
       onCanSubmitChange?.(hasContent && !isSubmitting);
     }, [hasContent, isSubmitting, onCanSubmitChange]);
 
-    // 캔버스 크기
-    const canvasWidth = 1000;
-    const canvasHeight = 280;
-
     // 캔버스 초기화
     useEffect(() => {
       const canvas = canvasRef.current;
@@ -87,10 +86,10 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
       ctxRef.current = ctx;
 
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = canvasWidth * dpr;
-      canvas.height = canvasHeight * dpr;
-      canvas.style.width = `${canvasWidth}px`;
-      canvas.style.height = `${canvasHeight}px`;
+      canvas.width = CANVAS_WIDTH * dpr;
+      canvas.height = CANVAS_HEIGHT * dpr;
+      canvas.style.width = `${CANVAS_WIDTH}px`;
+      canvas.style.height = `${CANVAS_HEIGHT}px`;
       ctx.scale(dpr, dpr);
 
     }, []);
@@ -101,8 +100,8 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
       if (!canvas) return;
 
       const toPoint = (e: PointerEvent, rect: DOMRect): SubmitPoint => ({
-        x: (e.clientX - rect.left) * (canvasWidth / rect.width),
-        y: (e.clientY - rect.top) * (canvasHeight / rect.height),
+        x: (e.clientX - rect.left) * (CANVAS_WIDTH / rect.width),
+        y: (e.clientY - rect.top) * (CANVAS_HEIGHT / rect.height),
         t: e.timeStamp,
       });
 
@@ -146,8 +145,8 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         const coalesced = "getCoalescedEvents" in e ? e.getCoalescedEvents() : null;
         const samples = coalesced && coalesced.length > 0 ? coalesced : [e];
 
-        const scaleX = canvasWidth / rect.width;
-        const scaleY = canvasHeight / rect.height;
+        const scaleX = CANVAS_WIDTH / rect.width;
+        const scaleY = CANVAS_HEIGHT / rect.height;
         const isErase = curMode === "erase";
         const eraseWidth = STROKE_WIDTH * 2;
 
@@ -205,8 +204,8 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
             currentStrokeRef.current = [];
             if (ctxUp) {
               redrawInkStrokes(ctxUp, strokesRef.current, {
-                canvasWidth,
-                canvasHeight,
+                canvasWidth: CANVAS_WIDTH,
+                canvasHeight: CANVAS_HEIGHT,
                 lineWidth: STROKE_WIDTH,
                 color: STROKE_COLOR,
               });
@@ -230,8 +229,8 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
             const ctx = ctxRef.current;
             if (ctx) {
               redrawInkStrokes(ctx, strokesRef.current, {
-                canvasWidth,
-                canvasHeight,
+                canvasWidth: CANVAS_WIDTH,
+                canvasHeight: CANVAS_HEIGHT,
                 lineWidth: STROKE_WIDTH,
                 color: STROKE_COLOR,
               });
@@ -271,7 +270,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
       const ctx = ctxRef.current;
       if (!ctx) return;
 
-      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       hasContentRef.current = false;
       setHasContent(false);
 
@@ -297,7 +296,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
       try {
         const result = await submitStrokes(strokes, {
           sessionId,
-          canvas: { width: canvasWidth, height: canvasHeight },
+          canvas: { width: CANVAS_WIDTH, height: CANVAS_HEIGHT },
           color: '#2E2E2E',
           baseStrokeWidth: STROKE_WIDTH,
         });
@@ -428,8 +427,8 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
           className="relative rounded-lg"
           style={{
             marginTop: "10px",
-            width: `${canvasWidth}px`,
-            height: `${canvasHeight}px`,
+            width: `${CANVAS_WIDTH}px`,
+            height: `${CANVAS_HEIGHT}px`,
             touchAction: "none",
             boxShadow: "inset 0 0 0 2px hsl(0 0% 42% / 0.3)",
           }}
@@ -448,8 +447,8 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
             style={{
               left: "0",
               top: "0",
-              width: `${canvasWidth}px`,
-              height: `${canvasHeight}px`,
+              width: `${CANVAS_WIDTH}px`,
+              height: `${CANVAS_HEIGHT}px`,
               cursor: isSubmitting ? "not-allowed" : mode === "erase" ? "cell" : "crosshair",
               opacity: isSubmitting ? 0.7 : 1,
               touchAction: "none",
@@ -496,7 +495,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
           className="bg-border"
           style={{
             marginTop: "10px",
-            width: `${canvasWidth}px`,
+            width: `${CANVAS_WIDTH}px`,
             height: "1px",
           }}
         />
