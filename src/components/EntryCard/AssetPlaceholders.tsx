@@ -15,10 +15,10 @@ interface AssetPlaceholdersProps {
   canSubmit?: boolean;
 }
 
-const AssetPlaceholders = ({ 
-  formData, 
+const AssetPlaceholders = ({
+  formData,
   onSubmit,
-  canSubmit = true 
+  canSubmit = true
 }: AssetPlaceholdersProps) => {
   const handleBadgeClick = () => {
     console.log("[AssetPlaceholders] Immigration button clicked - Form data:", formData);
@@ -34,8 +34,8 @@ const AssetPlaceholders = ({
         className="absolute pointer-events-none z-[50]"
         style={{
           right: "50px",
-          top: "32px",
-          width: "390px",
+          top: "18px",
+          width: "240px",
           height: "auto",
         }}
       />

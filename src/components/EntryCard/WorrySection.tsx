@@ -74,8 +74,8 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
     }, [hasContent, isSubmitting, onCanSubmitChange]);
 
     // 캔버스 크기
-    const canvasWidth = 960;
-    const canvasHeight = 240;
+    const canvasWidth = 1000;
+    const canvasHeight = 280;
 
     // 캔버스 초기화
     useEffect(() => {
@@ -427,6 +427,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         <div
           className="relative rounded-lg"
           style={{
+            marginTop: "10px",
             width: `${canvasWidth}px`,
             height: `${canvasHeight}px`,
             touchAction: "none",
@@ -494,6 +495,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
         <div
           className="bg-border"
           style={{
+            marginTop: "10px",
             width: `${canvasWidth}px`,
             height: "1px",
           }}

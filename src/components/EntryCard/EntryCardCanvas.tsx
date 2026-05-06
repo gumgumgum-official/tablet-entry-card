@@ -1,7 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import HeaderSection from "./HeaderSection";
-import NameField, { type NameFieldHandle } from "./NameField";
-import PurposeSection from "./PurposeSection";
 import WorrySection, { type WorrySectionHandle } from "./WorrySection";
 import AgreementSection from "./AgreementSection";
 import SignatureSection, { type SignatureSectionHandle } from "./SignatureSection";
@@ -10,11 +8,6 @@ import backgroundImage from "@/assets/background2.png";
 import { getSessionId } from "@/lib/submit";
 
 export interface EntryCardData {
-  purposeTourism: boolean;
-  purposeStudy: boolean;
-  purposeEmployment: boolean;
-  purposeBusiness: boolean;
-  purposeWorryFree: boolean;
   agreement1: boolean;
   agreement2: boolean;
   agreement3: boolean;
@@ -22,17 +15,11 @@ export interface EntryCardData {
 
 const EntryCardCanvas = () => {
   const [formData, setFormData] = useState<EntryCardData>({
-    purposeTourism: false,
-    purposeStudy: false,
-    purposeEmployment: false,
-    purposeBusiness: false,
-    purposeWorryFree: true,
     agreement1: false,
     agreement2: false,
     agreement3: false,
   });
 
-  const nameFieldRef = useRef<NameFieldHandle>(null);
   const worrySectionRef = useRef<WorrySectionHandle>(null);
   const signatureSectionRef = useRef<SignatureSectionHandle>(null);
   const [worryCanSubmit, setWorryCanSubmit] = useState(false);
@@ -54,7 +41,6 @@ const EntryCardCanvas = () => {
       worrySectionRef.current.submit();
     }
 
-    nameFieldRef.current?.clear();
     worrySectionRef.current?.clear();
     signatureSectionRef.current?.clear();
   }, []);
@@ -170,16 +156,6 @@ const EntryCardCanvas = () => {
             transformOrigin: "top left",
           }}
         >
-        {/*
-          Autolayout: 모든 폼 섹션을 하나의 flex-col 스택으로 관리.
-          카드 상단에 absolute 앵커(left 64 / top 36)만 걸고, 섹션 간 간격은 marginTop으로 조절.
-          원본 좌표 매핑:
-            Header bottom 111 → NameField top 128 (mt 17)
-            NameField bottom 160 → Purpose top 172 (mt 12)
-            Purpose bottom 277 → Worry top 300 (mt 23)
-            Worry bottom 503 → Agreement top 528 (mt 25)
-            Agreement bottom ~672 → Signature top 708 (mt 36)
-        */}
         <div
           style={{
             position: "absolute",
@@ -190,25 +166,6 @@ const EntryCardCanvas = () => {
           }}
         >
           <HeaderSection />
-
-          <div style={{ marginTop: "6px" }}>
-            <NameField ref={nameFieldRef} />
-          </div>
-
-          <div style={{ marginTop: "12px" }}>
-            <PurposeSection
-              tourism={formData.purposeTourism}
-              study={formData.purposeStudy}
-              employment={formData.purposeEmployment}
-              business={formData.purposeBusiness}
-              worryFree={formData.purposeWorryFree}
-              onTourismChange={(value) => updateField("purposeTourism", value)}
-              onStudyChange={(value) => updateField("purposeStudy", value)}
-              onEmploymentChange={(value) => updateField("purposeEmployment", value)}
-              onBusinessChange={(value) => updateField("purposeBusiness", value)}
-              onWorryFreeChange={(value) => updateField("purposeWorryFree", value)}
-            />
-          </div>
 
           <div style={{ marginTop: "12px" }}>
             <WorrySection
