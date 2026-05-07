@@ -28,6 +28,10 @@ type RequestMonitorResponse = {
 
 type QueuePositionResponse = {
   queuePosition?: number;
+  assigned?: boolean;
+  monitorId?: string;
+  monitorNumber?: number;
+  message?: string;
 };
 
 export type RequestMonitorResult = {
@@ -137,9 +141,11 @@ async function getQueuePosition(clientId: string): Promise<QueuePositionResponse
 /**
  * 태블릿: `POST /api/request-monitor` + (대기 시) `GET /api/queue/position` 만 사용.
  * `GET /status`, 모니터용 `/current`·`/start`·`/complete` 는 호출하지 않음 (요구사항.md).
+ * @param onQueuePosition 폴링 중 위치 변경 시마다 호출 (실시간 UI 업데이트용)
  */
 export async function requestMonitorAssignment(
-  payload: RequestMonitorAssignmentPayload
+  payload: RequestMonitorAssignmentPayload,
+  onQueuePosition?: (position: number) => void
 ): Promise<RequestMonitorResult> {
   if (!GUM_SERVER_URL) {
     console.warn(
@@ -197,6 +203,7 @@ export async function requestMonitorAssignment(
 
     let lastQueuePosition =
       typeof initial.queuePosition === "number" ? initial.queuePosition : 0;
+    onQueuePosition?.(lastQueuePosition);
 
     const startedAt = Date.now();
     while (Date.now() - startedAt < GUM_SERVER_POLL_MAX_WAIT_MS) {
@@ -208,7 +215,18 @@ export async function requestMonitorAssignment(
           continue;
         }
         lastQueuePosition = queue.queuePosition;
+        onQueuePosition?.(queue.queuePosition);
         if (queue.queuePosition === 0) {
+          if (queue.assigned) {
+            return {
+              ok: true,
+              assigned: true,
+              state: "assigned",
+              monitorId: queue.monitorId,
+              monitorNumber: queue.monitorNumber,
+              serverMessage: queue.message,
+            };
+          }
           return {
             ok: true,
             assigned: false,

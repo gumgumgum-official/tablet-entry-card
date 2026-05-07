@@ -327,13 +327,27 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
           // submit 성공 후: gum_server에 monitor 배정 요청 (seq 없어도 id 있으면 호출)
           if (worryIdForGum) {
-            const assignment = await requestMonitorAssignment({
-              worryId: worryIdForGum,
-              ...(displaySeq != null ? { displaySeq } : {}),
-              svgUrl: storagePathSvg ?? null,
-              sessionId: sessionId ?? null,
-              clientId: getClientId(),
-            });
+            let queueToastId: string | number | undefined;
+            const assignment = await requestMonitorAssignment(
+              {
+                worryId: worryIdForGum,
+                ...(displaySeq != null ? { displaySeq } : {}),
+                svgUrl: storagePathSvg ?? null,
+                sessionId: sessionId ?? null,
+                clientId: getClientId(),
+              },
+              (position) => {
+                if (position > 0) {
+                  const desc = `${position}번째로 대기 중입니다.`;
+                  if (queueToastId != null) {
+                    toast.message("배정 대기 중", { id: queueToastId, description: desc, duration: 60000 });
+                  } else {
+                    queueToastId = toast.message("배정 대기 중", { description: desc, duration: 60000 });
+                  }
+                }
+              }
+            );
+            if (queueToastId != null) toast.dismiss(queueToastId);
             if (!assignment.ok) {
               toast.warning("배정 요청이 실패했습니다.", {
                 description: "네트워크 상태 또는 gum_server 설정을 확인해주세요.",
@@ -349,6 +363,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
                       : "안내된 모니터로 이동해 주세요.";
               toast.success("모니터 예약 완료", {
                 description: assignment.serverMessage ?? fallbackGuide,
+                duration: 30000,
               });
             } else if (assignment.queueLeftWithoutAssignment) {
               toast.message("대기 안내", {
