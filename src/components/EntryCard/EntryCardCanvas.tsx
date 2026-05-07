@@ -43,6 +43,7 @@ const EntryCardCanvas = () => {
 
     worrySectionRef.current?.clear();
     signatureSectionRef.current?.clear();
+    setFormData({ agreement1: false, agreement2: false, agreement3: false });
   }, []);
 
   const handleWorryCanSubmitChange = useCallback((can: boolean) => {
