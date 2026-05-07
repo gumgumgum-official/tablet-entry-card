@@ -458,7 +458,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
 
           {hasContent && !isSubmitting && (
             <div
-              className="absolute z-10 top-2 right-2 flex flex-row-reverse items-center gap-2"
+              className="absolute z-10 bottom-2 right-2 flex flex-row-reverse items-center gap-2"
             >
               <button
                 onClick={clearCanvas}

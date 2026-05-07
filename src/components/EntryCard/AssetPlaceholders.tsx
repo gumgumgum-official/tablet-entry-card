@@ -1,6 +1,6 @@
 import type { EntryCardData } from "./EntryCardCanvas";
 import { cn } from "@/lib/utils";
-import stampBadge from "@/assets/stamp2.png";
+import stampBadge from "@/assets/stamp.png";
 import immigrationButton from "@/assets/immigration-button.png";
 import bearOfficer from "@/assets/bear-officer.png";
 
@@ -34,9 +34,10 @@ const AssetPlaceholders = ({
         className="absolute pointer-events-none z-[50]"
         style={{
           right: "50px",
-          top: "18px",
-          width: "240px",
+          top: "40px",
+          width: "180px",
           height: "auto",
+          transform: "rotate(-8deg)",
         }}
       />
 
