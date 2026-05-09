@@ -184,7 +184,10 @@ export async function requestMonitorAssignment(
       return { ok: false, assigned: false, state: "failed" };
     }
 
-    const initial = (await postResponse.json()) as RequestMonitorResponse;
+    const initial = (await postResponse.json()) as RequestMonitorResponse & { queueFull?: boolean };
+    if (initial.queueFull) {
+      return { ok: true, assigned: false, state: "pending", queuePosition: -1 };
+    }
     const normalizedInitial = normalizeAssignedState(initial);
     if (normalizedInitial.assigned || normalizedInitial.state === "expired") {
       return normalizedInitial;

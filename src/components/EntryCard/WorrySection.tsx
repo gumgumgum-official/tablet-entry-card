@@ -340,9 +340,9 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
                 if (position > 0) {
                   const desc = `${position}번째로 대기 중입니다.`;
                   if (queueToastId != null) {
-                    toast.message("배정 대기 중", { id: queueToastId, description: desc, duration: 60000 });
+                    toast.message("배정 대기 중", { id: queueToastId, description: desc, duration: 15000 });
                   } else {
-                    queueToastId = toast.message("배정 대기 중", { description: desc, duration: 60000 });
+                    queueToastId = toast.message("배정 대기 중", { description: desc, duration: 15000 });
                   }
                 }
               }
@@ -371,16 +371,24 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
                   "대기 순번이 종료되었습니다. 현장 안내를 기다려 주세요.",
               });
             } else if (assignment.state === "pending") {
-              const pendingText =
-                typeof assignment.queuePosition === "number" &&
-                assignment.queuePosition > 0
-                  ? `${assignment.queuePosition}번째로 대기 중입니다.`
-                  : displaySeq != null
-                    ? `${displaySeq}번째 고민이 대기 중입니다.`
-                    : "고민이 대기 중입니다.";
-              toast.message("배정 대기 중", {
-                description: pendingText,
-              });
+              if (assignment.queuePosition === -1) {
+                toast.warning("대기 마감", {
+                  description: "현재 대기 중인 분이 있습니다. 잠시 후 다시 시도해 주세요.",
+                  duration: 5000,
+                });
+              } else {
+                const pendingText =
+                  typeof assignment.queuePosition === "number" &&
+                  assignment.queuePosition > 0
+                    ? `${assignment.queuePosition}번째로 대기 중입니다.`
+                    : displaySeq != null
+                      ? `${displaySeq}번째 고민이 대기 중입니다.`
+                      : "고민이 대기 중입니다.";
+                toast.message("배정 대기 중", {
+                  description: pendingText,
+                  duration: 15000,
+                });
+              }
             } else if (assignment.state === "expired") {
               toast.warning("배정 시간이 만료되었습니다.", {
                 description: "다시 제출하거나 운영자에게 문의해주세요.",
