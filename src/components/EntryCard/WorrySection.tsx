@@ -338,7 +338,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
               },
               (position) => {
                 if (position > 0) {
-                  const desc = `${position}번째로 대기 중입니다.`;
+                  const desc = `${position}번째로 대기 중입니다. 현장에서 안내해드릴게요!`;
                   if (queueToastId != null) {
                     toast.message("배정 대기 중", { id: queueToastId, description: desc, duration: 15000 });
                   } else {

@@ -1,7 +1,6 @@
 import type { EntryCardData } from "./EntryCardCanvas";
 import { cn } from "@/lib/utils";
-import stampBadge from "@/assets/stamp.png";
-import immigrationButton from "@/assets/immigration-button.png";
+import stampBadge from "@/assets/stamp3.png";
 import bearOfficer from "@/assets/bear-officer.png";
 
 /** PNG 입국심사 버튼 사용 시 true. 현재는 텍스트 제출 버튼 */
