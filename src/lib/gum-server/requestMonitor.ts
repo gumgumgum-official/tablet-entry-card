@@ -50,6 +50,8 @@ export type RequestMonitorResult = {
    * 태블릿에는 푸시 없음 — 현장 안내 UX용 (요구사항.md)
    */
   queueLeftWithoutAssignment?: boolean;
+  /** 진단용: ok=false일 때 실제 에러 메시지 */
+  debugError?: string;
 };
 
 /** 요구사항: base URL 끝 `/` 제거 */
@@ -181,7 +183,7 @@ export async function requestMonitorAssignment(
     if (!postResponse.ok) {
       const text = await postResponse.text().catch(() => "");
       console.warn("[gum_server] POST /api/request-monitor 실패:", postResponse.status, text);
-      return { ok: false, assigned: false, state: "failed" };
+      return { ok: false, assigned: false, state: "failed", debugError: `HTTP ${postResponse.status}: ${text}` };
     }
 
     const initial = (await postResponse.json()) as RequestMonitorResponse & { queueFull?: boolean };
@@ -250,7 +252,8 @@ export async function requestMonitorAssignment(
       queuePosition: lastQueuePosition,
     };
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
     console.warn("[gum_server] request-monitor REST 호출 실패:", error);
-    return { ok: false, assigned: false, state: "failed" };
+    return { ok: false, assigned: false, state: "failed", debugError: msg };
   }
 }

@@ -350,7 +350,7 @@ const WorrySection = forwardRef<WorrySectionHandle, WorrySectionProps>(
             if (queueToastId != null) toast.dismiss(queueToastId);
             if (!assignment.ok) {
               toast.warning("배정 요청이 실패했습니다.", {
-                description: "네트워크 상태 또는 gum_server 설정을 확인해주세요.",
+                description: assignment.debugError ?? "네트워크 상태 또는 gum_server 설정을 확인해주세요.",
               });
             } else if (assignment.assigned) {
               const fallbackGuide =
