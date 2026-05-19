@@ -153,7 +153,7 @@ export async function requestMonitorAssignment(
     console.warn(
       "[gum_server] VITE_GUM_SERVER_URL 미설정: REST 요청을 생략합니다."
     );
-    return { ok: false, assigned: false, state: "failed" };
+    return { ok: false, assigned: false, state: "failed", debugError: "VITE_GUM_SERVER_URL 미설정" };
   }
 
   const body: Record<string, unknown> = {
