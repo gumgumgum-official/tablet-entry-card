@@ -63,6 +63,17 @@ function buildUrl(path: string): string {
   return `${gumServerBase()}${path}`;
 }
 
+/** 서버로 로그 전송 (아이패드 콘솔 대체) — 실패해도 무시 */
+function remoteLog(level: "info" | "warn" | "error", message: string, data?: unknown): void {
+  const base = gumServerBase();
+  if (!base) return;
+  fetch(`${base}/api/debug-log`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ level, message, data }),
+  }).catch(() => {});
+}
+
 function withTimeoutSignal(ms: number): AbortSignal {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), ms);
@@ -150,9 +161,7 @@ export async function requestMonitorAssignment(
   onQueuePosition?: (position: number) => void
 ): Promise<RequestMonitorResult> {
   if (!GUM_SERVER_URL) {
-    console.warn(
-      "[gum_server] VITE_GUM_SERVER_URL 미설정: REST 요청을 생략합니다."
-    );
+    console.warn("[gum_server] VITE_GUM_SERVER_URL 미설정: REST 요청을 생략합니다.");
     return { ok: false, assigned: false, state: "failed", debugError: "VITE_GUM_SERVER_URL 미설정" };
   }
 
@@ -172,31 +181,42 @@ export async function requestMonitorAssignment(
     body.clientId = payload.clientId;
   }
 
+  const requestUrl = buildUrl("/api/request-monitor");
+  remoteLog("info", "request-monitor 호출 시작", { url: requestUrl, body });
+
   try {
-    const postResponse = await fetch(buildUrl("/api/request-monitor"), {
+    const postResponse = await fetch(requestUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
       signal: withTimeoutSignal(GUM_SERVER_REQUEST_TIMEOUT_MS),
     });
 
+    remoteLog("info", "request-monitor 응답 수신", { status: postResponse.status, ok: postResponse.ok });
+
     if (!postResponse.ok) {
       const text = await postResponse.text().catch(() => "");
       console.warn("[gum_server] POST /api/request-monitor 실패:", postResponse.status, text);
+      remoteLog("error", "request-monitor HTTP 에러", { status: postResponse.status, body: text });
       return { ok: false, assigned: false, state: "failed", debugError: `HTTP ${postResponse.status}: ${text}` };
     }
 
     const initial = (await postResponse.json()) as RequestMonitorResponse & { queueFull?: boolean };
+    remoteLog("info", "request-monitor 응답 파싱 완료", { initial });
+
     if (initial.queueFull) {
+      remoteLog("warn", "request-monitor queueFull");
       return { ok: true, assigned: false, state: "pending", queuePosition: -1 };
     }
     const normalizedInitial = normalizeAssignedState(initial);
     if (normalizedInitial.assigned || normalizedInitial.state === "expired") {
+      remoteLog("info", "request-monitor 즉시 배정/만료", { state: normalizedInitial.state });
       return normalizedInitial;
     }
 
     const pollingClientId = initial.clientId || payload.clientId;
     if (!pollingClientId) {
+      remoteLog("warn", "request-monitor pollingClientId 없음 — 폴링 생략");
       return {
         ok: true,
         assigned: false,
@@ -209,6 +229,7 @@ export async function requestMonitorAssignment(
     let lastQueuePosition =
       typeof initial.queuePosition === "number" ? initial.queuePosition : 0;
     onQueuePosition?.(lastQueuePosition);
+    remoteLog("info", "request-monitor 대기열 폴링 시작", { pollingClientId, queuePosition: lastQueuePosition });
 
     const startedAt = Date.now();
     while (Date.now() - startedAt < GUM_SERVER_POLL_MAX_WAIT_MS) {
@@ -221,8 +242,10 @@ export async function requestMonitorAssignment(
         }
         lastQueuePosition = queue.queuePosition;
         onQueuePosition?.(queue.queuePosition);
+        remoteLog("info", "queue/position 폴링", { queuePosition: queue.queuePosition, assigned: queue.assigned });
         if (queue.queuePosition === 0) {
           if (queue.assigned) {
+            remoteLog("info", "대기열 배정 완료", { monitorId: queue.monitorId });
             return {
               ok: true,
               assigned: true,
@@ -232,6 +255,7 @@ export async function requestMonitorAssignment(
               serverMessage: queue.message,
             };
           }
+          remoteLog("warn", "대기열 종료 — 배정 없이 queuePosition=0");
           return {
             ok: true,
             assigned: false,
@@ -241,7 +265,9 @@ export async function requestMonitorAssignment(
           };
         }
       } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
         console.warn("[gum_server] queue/position 폴링 오류:", error);
+        remoteLog("warn", "queue/position 폴링 오류", { error: msg });
       }
     }
 
@@ -251,9 +277,18 @@ export async function requestMonitorAssignment(
       state: "pending",
       queuePosition: lastQueuePosition,
     };
+    remoteLog("warn", "request-monitor 폴링 타임아웃", { lastQueuePosition, elapsed: GUM_SERVER_POLL_MAX_WAIT_MS });
+    return {
+      ok: true,
+      assigned: false,
+      state: "pending",
+      queuePosition: lastQueuePosition,
+    };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
     console.warn("[gum_server] request-monitor REST 호출 실패:", error);
+    remoteLog("error", "request-monitor fetch 실패", { error: msg, stack });
     return { ok: false, assigned: false, state: "failed", debugError: msg };
   }
 }
