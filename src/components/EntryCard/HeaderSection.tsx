@@ -11,7 +11,7 @@ const HeaderSection = () => {
           lineHeight: "38px",
         }}
       >
-        GGUMDDI NATION ENTRY CARD
+        GGUM WORLD ENTRY CARD
       </h1>
 
       <h2
