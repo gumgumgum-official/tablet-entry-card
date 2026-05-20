@@ -38,11 +38,14 @@ export function isCanvasPointerStartAllowed(
   // 로컬 개발 환경: 모든 입력 허용
   if (import.meta.env.DEV) return true;
 
-  // 배포 환경: Apple Pencil(pen)만 허용
   const pt = pointerType ?? "";
-  const allowed = pt === "pen";
 
-  if (!allowed && envFlagTrue(import.meta.env.VITE_DEBUG_POINTER)) {
+  if (envFlagTrue(import.meta.env.VITE_ALLOW_ALL_POINTERS)) return true;
+  if (pt === "pen") return true;
+  if (pt === "touch" && envFlagTrue(import.meta.env.VITE_ALLOW_TOUCH_AS_PEN)) return true;
+  if (pt === "mouse" && envFlagTrue(import.meta.env.VITE_ALLOW_MOUSE)) return true;
+
+  if (envFlagTrue(import.meta.env.VITE_DEBUG_POINTER)) {
     // eslint-disable-next-line no-console
     console.warn("[canvasPointer] pointerdown rejected", {
       pointerType: pt,
@@ -52,5 +55,5 @@ export function isCanvasPointerStartAllowed(
     });
   }
 
-  return allowed;
+  return false;
 }
